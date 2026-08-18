@@ -53,7 +53,9 @@ const DATABASE_OPTIONS = {
 
 const RESERVED_NAMES = ['node_modules', 'favicon.ico'];
 
-const CLI_VERSION = '2.1.0';
+const path = require('path');
+const packageJson = require(path.join(__dirname, '..', 'package.json'));
+const CLI_VERSION = packageJson.version;
 
 module.exports = {
   ORM_OPTIONS,
