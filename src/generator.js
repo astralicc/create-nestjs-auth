@@ -102,12 +102,23 @@ async function generateFromModularTemplates(targetDir, { baseDir, ormDir, dbDir,
 
   // Step 6: Apply Base CRUD Architecture overlay
   if (baseCrud) {
+    // 6a. Shared layer: abstract base + shared DTOs + shared controller
     const baseCrudDir = path.join(__dirname, '..', 'templates', 'base-crud');
     if (await fs.pathExists(baseCrudDir)) {
-      console.log(chalk.gray('   Adding Base CRUD Architecture (BaseService, BaseController, Swagger helpers)...'));
+      console.log(chalk.gray('   Adding Base CRUD Architecture (abstract layer + shared DTOs)...'));
       await fs.copy(baseCrudDir, targetDir, {
         overwrite: true,
         filter: createCopyFilter(baseCrudDir),
+      });
+    }
+
+    // 6b. ORM-specific ProductModule example (overrides products.service.ts + module)
+    const baseCrudOrmDir = path.join(__dirname, '..', 'templates', `base-crud-${orm}`);
+    if (await fs.pathExists(baseCrudOrmDir)) {
+      console.log(chalk.gray(`   Adding ${ORM_OPTIONS[orm]?.name || orm} ProductModule example...`));
+      await fs.copy(baseCrudOrmDir, targetDir, {
+        overwrite: true,
+        filter: createCopyFilter(baseCrudOrmDir),
       });
     }
   }

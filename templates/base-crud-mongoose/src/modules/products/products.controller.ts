@@ -28,19 +28,6 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductDto } from './dto/product.dto';
 
-// ─────────────────────────────────────────────────────────────
-// Products Controller
-//
-// Extends BaseController which provides (via ORM-specific service):
-//   POST   /products          → create()
-//   GET    /products          → findAll()
-//   GET    /products/:id      → findOne()
-//   PUT    /products/:id      → update()
-//   DELETE /products/:id      → remove()
-//
-// @ApiExtraModels registers DTOs so Swagger renders
-// generic ApiResponseDto<ProductDto> and PaginatedResponseDto<ProductDto>.
-// ─────────────────────────────────────────────────────────────
 @ApiTags('Products')
 @ApiBearerAuth('bearer')
 @ApiExtraModels(ApiResponseDto, PaginatedResponseDto, ProductDto)
@@ -58,11 +45,9 @@ export class ProductsController extends BaseController<
     return ProductDto as unknown as Type<ProductEntity>;
   }
 
-  // ── Overrides to inject Swagger response schemas ────────────
-
   @Get()
   @ApiOperation({ summary: 'Get all products (paginated)' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Paginated products', schema: PaginatedResponseSchema(ProductDto) })
+  @ApiResponse({ status: HttpStatus.OK, schema: PaginatedResponseSchema(ProductDto) })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
   override async findAll(@Query() pagination: PaginationQueryDto): Promise<PaginatedResponseDto<ProductEntity>> {
     return super.findAll(pagination);
@@ -70,25 +55,25 @@ export class ProductsController extends BaseController<
 
   @Get('by-sku/:sku')
   @ApiOperation({ summary: 'Get a product by SKU' })
-  @ApiParam({ name: 'sku', example: 'KB-WL-MEC-001', description: 'Unique Stock Keeping Unit' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Product found by SKU', schema: ApiResponseSchema(ProductDto) })
+  @ApiParam({ name: 'sku', example: 'KB-WL-MEC-001' })
+  @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(ProductDto) })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Product not found' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
   async findBySku(@Param('sku') sku: string): Promise<ApiResponseDto<ProductEntity>> {
     const data = await this.productsService.findBySku(sku);
     return { success: true, data, meta: { correlationId: '', timestamp: new Date().toISOString() } };
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a product by UUID' })
+  @ApiOperation({ summary: 'Get a product by ID' })
   @ApiParam({ name: 'id', format: 'uuid', example: '123e4567-e89b-12d3-a456-426614174000' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Product found', schema: ApiResponseSchema(ProductDto) })
+  @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(ProductDto) })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Product not found' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid UUID format' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid UUID' })
   override async findOne(
-    @Param('id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST }))
+    id: string,
   ): Promise<ApiResponseDto<ProductEntity>> {
     return super.findOne(id);
   }
 }
+

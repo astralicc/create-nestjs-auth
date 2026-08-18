@@ -164,7 +164,7 @@ export class OrderDto {
 **`src/modules/orders/orders.service.ts`**
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../database/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { BaseService, IBaseRepository, PaginationQueryDto } from '../../common/base';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -285,7 +285,7 @@ export class OrdersController extends BaseController<Order, CreateOrderDto, Upda
 import { Module } from '@nestjs/common';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
-import { PrismaModule } from '../../database/prisma.module';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
