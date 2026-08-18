@@ -42,6 +42,7 @@ program
   .option('--orm <orm>', 'ORM to use (prisma|typeorm|drizzle|mongoose)')
   .option('--database <db>', 'Database to use (postgres|mysql|sqlite|mongodb)')
   .option('--swagger', 'Add Swagger API documentation')
+  .option('--base-crud', 'Generate Base CRUD Architecture (BaseService, BaseController & Swagger helpers in src/common/base)')
   .option('--yes', 'Skip all prompts and use defaults')
   .action(async (appName, options) => {
     try {
@@ -72,6 +73,9 @@ program
       console.log(chalk.gray(`   Database: ${DATABASE_OPTIONS[projectOptions.database]?.name || projectOptions.database}`));
       if (projectOptions.swagger) {
         console.log(chalk.gray(`   Swagger: ${chalk.green('Enabled')}`));
+      }
+      if (projectOptions.baseCrud) {
+        console.log(chalk.gray(`   Base CRUD: ${chalk.green('Enabled')}`) );
       }
       console.log('');
 
@@ -162,6 +166,9 @@ program
         console.log(chalk.white('🐛 Issues: https://github.com/masabinhok/create-nestjs-auth/issues'));
         if (projectOptions.swagger) {
           console.log(chalk.cyan('📄 Swagger docs: http://localhost:8080/api/docs'));
+        }
+        if (projectOptions.baseCrud) {
+          console.log(chalk.cyan('🏗️  Base CRUD: src/common/base/ — see CRUD_README.md'));
         }
         console.log(chalk.magenta('\nHappy coding! 🎉\n'));
       }

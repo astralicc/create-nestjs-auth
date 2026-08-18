@@ -19,13 +19,13 @@ const { generateJWTSecret, getRunPrefix } = require('./utils');
  * @returns {Promise<boolean>} Whether interactive setup completed
  */
 async function handlePostSetup(targetDir, appName, options) {
-  const { packageManager, orm, database, swagger, yes: isYesMode, skipInstall } = options;
+  const { packageManager, orm, database, swagger, baseCrud, yes: isYesMode, skipInstall } = options;
 
   if (isYesMode || skipInstall) {
     return false;
   }
 
-  printSuccessHeader(appName, orm, database, swagger);
+  printSuccessHeader(appName, orm, database, swagger, baseCrud);
 
   const { continueSetup } = await inquirer.prompt([{
     type: 'confirm',
@@ -53,12 +53,15 @@ async function handlePostSetup(targetDir, appName, options) {
 /**
  * Prints the success header
  */
-function printSuccessHeader(appName, orm, database, swagger) {
+function printSuccessHeader(appName, orm, database, swagger, baseCrud) {
   console.log(chalk.green('\n✅ Success! Created ' + chalk.bold(appName)));
   console.log(chalk.gray(`   ORM: ${ORM_OPTIONS[orm]?.name || orm}`));
   console.log(chalk.gray(`   Database: ${DATABASE_OPTIONS[database]?.name || database}`));
   if (swagger) {
     console.log(chalk.gray(`   Swagger: ${chalk.green('Enabled')}`));
+  }
+  if (baseCrud) {
+    console.log(chalk.gray(`   Base CRUD Architecture: ${chalk.green('Enabled')} — src/common/base/`));
   }
   console.log(chalk.white('\n🎉 Your project is ready!\n'));
 }
@@ -299,13 +302,16 @@ async function promptDevServer(targetDir, packageManager) {
  * Prints manual setup instructions when interactive setup is skipped
  */
 function printManualInstructions(appName, options) {
-  const { orm, database, packageManager, installDependencies, swagger } = options;
+  const { orm, database, packageManager, installDependencies, swagger, baseCrud } = options;
   
   console.log(chalk.green('\n✅ Success! Created ' + chalk.bold(appName)));
   console.log(chalk.gray(`   ORM: ${ORM_OPTIONS[orm]?.name || orm}`));
   console.log(chalk.gray(`   Database: ${DATABASE_OPTIONS[database]?.name || database}`));
   if (swagger) {
     console.log(chalk.gray(`   Swagger: ${chalk.green('Enabled')}`));
+  }
+  if (baseCrud) {
+    console.log(chalk.gray(`   Base CRUD Architecture: ${chalk.green('Enabled')} — see CRUD_README.md`));
   }
   console.log(chalk.white('\n📚 Next steps:\n'));
   console.log(chalk.cyan(`   cd ${appName}`));
@@ -339,6 +345,13 @@ function printManualInstructions(appName, options) {
   if (swagger) {
     console.log(chalk.cyan('\n   # Swagger API documentation:'));
     console.log(chalk.gray('   http://localhost:8080/api/docs'));
+  }
+  
+  if (baseCrud) {
+    console.log(chalk.cyan('\n   # Base CRUD Architecture:'));
+    console.log(chalk.gray('   src/common/base/   — BaseService & BaseController'));
+    console.log(chalk.gray('   src/modules/products/  — Concrete example (ProductModule)'));
+    console.log(chalk.gray('   CRUD_README.md         — Full guide & cheatsheet'));
   }
   
   console.log(chalk.white('\n📖 Documentation: https://github.com/masabinhok/create-nestjs-auth'));

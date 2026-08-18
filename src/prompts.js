@@ -100,6 +100,17 @@ async function promptForProjectDetails(providedAppName, options) {
     });
   }
 
+  // Base CRUD Architecture prompt
+  if (!options.baseCrud && !options.yes) {
+    questions.push({
+      type: 'confirm',
+      name: 'baseCrud',
+      message:
+        'Enable Base CRUD Architecture? (generates abstract BaseService, BaseController & Swagger helpers in src/common/base)',
+      default: false,
+    });
+  }
+
   const answers = await inquirer.prompt(questions);
 
   // Determine ORM and database
@@ -116,6 +127,7 @@ async function promptForProjectDetails(providedAppName, options) {
     installDependencies: options.skipInstall ? false : answers.installDependencies !== false,
     initializeGit: options.skipGit ? false : answers.initializeGit !== false,
     swagger: options.swagger || answers.swagger || false,
+    baseCrud: options.baseCrud || answers.baseCrud || false,
   };
 }
 

@@ -14,7 +14,7 @@ const { ORM_OPTIONS } = require('./constants');
  * @param {object} options - Generation options
  */
 async function generateProject(targetDir, options) {
-  const { orm, database, swagger } = options;
+  const { orm, database, swagger, baseCrud } = options;
   const templatesDir = path.join(__dirname, '..', 'templates');
 
   const baseDir = path.join(templatesDir, 'base');
@@ -26,7 +26,7 @@ async function generateProject(targetDir, options) {
   const useNewStructure = await fs.pathExists(baseDir);
 
   if (useNewStructure) {
-    await generateFromModularTemplates(targetDir, { baseDir, ormDir, dbDir, orm, swagger, swaggerDir, swaggerMongooseDir });
+    await generateFromModularTemplates(targetDir, { baseDir, ormDir, dbDir, orm, swagger, swaggerDir, swaggerMongooseDir, baseCrud });
   } else {
     await generateFromLegacyTemplate(targetDir);
   }
@@ -37,7 +37,7 @@ async function generateProject(targetDir, options) {
  * @param {string} targetDir - Target directory
  * @param {object} dirs - Directory paths
  */
-async function generateFromModularTemplates(targetDir, { baseDir, ormDir, dbDir, orm, swagger, swaggerDir, swaggerMongooseDir }) {
+async function generateFromModularTemplates(targetDir, { baseDir, ormDir, dbDir, orm, swagger, swaggerDir, swaggerMongooseDir, baseCrud }) {
   console.log(chalk.gray('   Using modular template structure...'));
 
   // Ensure target directory exists
@@ -98,6 +98,18 @@ async function generateFromModularTemplates(targetDir, { baseDir, ormDir, dbDir,
 
     // Add Swagger dependencies to package.json
     await addSwaggerDependencies(targetDir);
+  }
+
+  // Step 6: Apply Base CRUD Architecture overlay
+  if (baseCrud) {
+    const baseCrudDir = path.join(__dirname, '..', 'templates', 'base-crud');
+    if (await fs.pathExists(baseCrudDir)) {
+      console.log(chalk.gray('   Adding Base CRUD Architecture (BaseService, BaseController, Swagger helpers)...'));
+      await fs.copy(baseCrudDir, targetDir, {
+        overwrite: true,
+        filter: createCopyFilter(baseCrudDir),
+      });
+    }
   }
 }
 
