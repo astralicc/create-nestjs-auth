@@ -27,7 +27,23 @@ const {
   generateProject,
   handlePostSetup,
   printManualInstructions,
+  generateModule,
 } = require(path.join(packageRoot, 'src'));
+
+// ==================== GENERATE COMMAND ====================
+program
+  .command('generate [module-name]')
+  .alias('g')
+  .description('Generate a new CRUD module')
+  .action(async (moduleName) => {
+    try {
+      console.log(chalk.cyan(`\n⚡️ create-nestjs-auth v${CLI_VERSION} Module Generator\n`));
+      await generateModule(moduleName, process.cwd());
+    } catch (error) {
+      console.error(chalk.red('\n❌ Module generation failed:'));
+      console.error(error);
+    }
+  });
 
 // ==================== MAIN CLI ====================
 
@@ -171,6 +187,21 @@ program
           console.log(chalk.cyan('🏗️  Base CRUD: src/common/base/ — see CRUD_README.md'));
         }
         console.log(chalk.magenta('\nHappy coding! 🎉\n'));
+
+        // Post-setup module generation hook
+        if (projectOptions.baseCrud) {
+          const inquirer = require('inquirer');
+          const { generateNow } = await inquirer.prompt([{
+            type: 'confirm',
+            name: 'generateNow',
+            message: 'Do you want to generate your first CRUD module now?',
+            default: true
+          }]);
+          
+          if (generateNow) {
+            await generateModule(undefined, targetDir, projectOptions.orm);
+          }
+        }
       }
 
     } catch (error) {

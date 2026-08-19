@@ -9,4 +9,5 @@ module.exports = {
   ...require('./prompts'),
   ...require('./generator'),
   ...require('./postSetup'),
+  ...require('./moduleGenerator'),
 };

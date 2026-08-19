@@ -1,29 +1,30 @@
-﻿<div align="center">
+<div align="center">
 
-# create-nestjs-auth
+# @astralicc/create-nestjs-auth-swagger
 
-### The Zero-Config Way to Build Secure Authentication
+### The Zero-Config Way to Build Secure Authentication & CRUD APIs
 
-**Stop wasting 40 hours building JWT auth from scratch.**  
-Get a battle-tested, production-ready NestJS auth system in **under 3 minutes**.
+**Stop wasting 40 hours building JWT auth & CRUD modules from scratch.**  
+Get a battle-tested, production-ready NestJS auth system and Swagger-documented APIs in **under 3 minutes**.
 
-[![npm version](https://img.shields.io/npm/v/create-nestjs-auth.svg?style=flat-square&color=E0234E)](https://www.npmjs.com/package/create-nestjs-auth)
-[![Downloads](https://img.shields.io/npm/dm/create-nestjs-auth.svg?style=flat-square&color=48BB78)](https://www.npmjs.com/package/create-nestjs-auth)
+[![npm version](https://img.shields.io/npm/v/@astralicc/create-nestjs-auth-swagger.svg?style=flat-square&color=E0234E)](https://www.npmjs.com/package/@astralicc/create-nestjs-auth-swagger)
+[![Downloads](https://img.shields.io/npm/dm/@astralicc/create-nestjs-auth-swagger.svg?style=flat-square&color=48BB78)](https://www.npmjs.com/package/@astralicc/create-nestjs-auth-swagger)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
-[![Node Version](https://img.shields.io/node/v/create-nestjs-auth?style=flat-square&color=339933)](https://nodejs.org)
+[![Node Version](https://img.shields.io/node/v/@astralicc/create-nestjs-auth-swagger?style=flat-square&color=339933)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-11.0-E0234E?style=flat-square&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![Swagger](https://img.shields.io/badge/Swagger-Integrated-85EA2D?style=flat-square&logo=swagger&logoColor=black)](https://swagger.io/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 ```bash
-npx create-nestjs-auth@latest
+npx @astralicc/create-nestjs-auth-swagger@latest
 ```
 
 [Quick Start](#quick-start) | [ORM & Database Options](#orm--database-options) | [Features](#what-you-get) | [Docs](#links--resources)
 
 ---
 
-**v2.0.8** | **4 ORMs** (Prisma, Drizzle, TypeORM, Mongoose) | **4 Databases** (PostgreSQL, MySQL, SQLite, MongoDB)
+**v2.4.0** | **Interactive Module Generator** | **Swagger UI Included** | **4 ORMs** | **4 Databases**
 
 </div>
 
@@ -31,7 +32,7 @@ npx create-nestjs-auth@latest
 
 ## Why This Exists
 
-Building secure JWT authentication isn't trivial. You need:
+Building secure JWT authentication and standard CRUD operations isn't trivial. You need:
 - Access tokens + refresh token rotation
 - HttpOnly cookies (not localStorage)
 - Multi-device session management
@@ -40,12 +41,14 @@ Building secure JWT authentication isn't trivial. You need:
 - PII-safe logging
 - Proper password hashing (bcrypt 12 rounds)
 - Flexible ORM & database choices
+- **Consistent, secure CRUD boilerplate with strict validation**
+- **Automated API Documentation (Swagger)**
 
 **This CLI gives you all of that.** Production-ready, security-hardened, tested patterns - instantly.
 
 <div align="center">
 
-### The Problem with Building Auth From Scratch
+### The Problem with Building APIs From Scratch
 
 | Task | Time Required | Complexity |
 |------|---------------|------------|
@@ -54,51 +57,54 @@ Building secure JWT authentication isn't trivial. You need:
 | RBAC implementation | 3-4 hours | Medium |
 | Rate limiting | 2-3 hours | Medium |
 | Security hardening | 8-10 hours | Very High |
+| Base CRUD & Swagger setup | 5-7 hours | Medium |
 | Testing & debugging | 6-8 hours | High |
-| **Total** | **29-39 hours** | **** |
+| **Total** | **34-46 hours** | **** |
 
-### With create-nestjs-auth
+### With @astralicc/create-nestjs-auth-swagger
 
 | Task | Time Required | Complexity |
 |------|---------------|------------|
 | Run one command | 3 minutes | **Zero** |
-| **Total** | **3 minutes** | **** |
+| Generate new modules | 10 seconds | **Zero** |
+| **Total** | **~3 minutes** | **** |
 
-*Save 30-40 hours and get battle-tested code that just works.*
+*Save 40+ hours and get battle-tested code that just works.*
 
 </div>
 
 ## Quick Start
 
-**30 seconds to a running auth API:**
+**30 seconds to a running auth API with Swagger Docs:**
 
 ```bash
 # Run the CLI
-npx create-nestjs-auth@latest
+npx @astralicc/create-nestjs-auth-swagger@latest
 
 # Answer quick questions
 #  Project name
 #  ORM (Prisma, Drizzle, TypeORM, or Mongoose)
 #  Database (PostgreSQL, MySQL, SQLite, or MongoDB)
+#  Enable Base CRUD Architecture? (Yes/No)
 #  Package manager
 #  Install dependencies
 #  Setup database
 #  Initialize git
 
 # Done! Your API is running at http://localhost:8080/api/v1
+# Swagger UI is available at http://localhost:8080/api/docs
 ```
-
-**That's it.** No configuration files. No secret management headaches. No database setup confusion.
 
 <details>
 <summary><b>See it in action (GIF/Video coming soon)</b></summary>
 
 ```
-create-nestjs-auth
+create-nestjs-auth-swagger
 
 ? What is your project name? my-awesome-api
 ? Which ORM would you like to use? Prisma
 ? Which database would you like to use? PostgreSQL
+? Enable Base CRUD Architecture? Yes
 ? Which package manager? pnpm (detected)
 ? Install dependencies? Yes
 ? Initialize git repository? Yes
@@ -116,6 +122,7 @@ create-nestjs-auth
 
 ? Start dev server? Yes
  Server running at http://localhost:8080/api/v1
+ Swagger UI at http://localhost:8080/api/docs
 ```
 
 </details>
@@ -135,17 +142,20 @@ create-nestjs-auth
 - **Bcrypt 12 Rounds** - 2025 security baseline
 - **Rate Limiting** - 5 auth attempts/min
 - **PII-Safe Logs** - Passwords/tokens auto-redacted
+- **Mass Assignment Protection** - `ValidationPipe` with `whitelist: true` & `forbidNonWhitelisted: true`
+- **Strict Parameter Parsing** - `@ParseUUIDPipe` / `@ParseIntPipe` on ID parameters.
 
 </td>
 <td width="50%">
 
 ### Developer Experience
 
+- **Interactive Module Generator** - Scaffold CRUD in seconds
+- **Auto-Generated Swagger Docs** - Out-of-the-box UI at `/api/docs`
 - **TypeScript** - Full type safety
+- **Base CRUD Architecture** - Abstract `BaseService` & `BaseController`
 - **Hot Reload** - Instant feedback
 - **Prisma Studio** - Visual database UI
-- **Health Checks** - K8s-ready endpoints
-- **E2E Tests** - Comprehensive test suite
 
 </td>
 </tr>
@@ -159,6 +169,7 @@ create-nestjs-auth
 - **Structured Logging** - Pino JSON logs
 - **Input Validation** - Zod + class-validator
 - **CORS & Helmet** - Security headers included
+- **Global Error Handling** - Handled `NotFoundException` and Soft-Deletes.
 
 </td>
 <td width="50%">
@@ -177,21 +188,70 @@ create-nestjs-auth
 
 ---
 
-## See It in Action
+## Interactive Module Generator
 
-### Video Demo (Coming Soon)
-> We're creating a video walkthrough. Subscribe to [discussions](https://github.com/masabinhok/create-nestjs-auth/discussions) to get notified!
+Add new CRUD modules dynamically to your running project anytime using the `generate` (or `g`) sub-command!
+
+```bash
+# Inside your project directory
+npx @astralicc/create-nestjs-auth-swagger g [module-name]
+# OR
+npx @astralicc/create-nestjs-auth-swagger generate [module-name]
+```
+
+### Interactive Prompts
+1. **Module Name:** If not provided via CLI args, you'll be prompted: `"What module do you want to generate?"`
+2. **CRUD Mode Selection:**
+   - `Full CRUD (Create, Read All, Read One, Update, Delete)`
+   - `Custom Selection...`
+3. **Cherry-Pick Operations:** If you select "Custom Selection", you can use a multiselect checkbox to pick exactly what you need (e.g., just `Create` and `Read All`).
+
+### Auto-Generated Files & Swagger Integration
+The generator intelligently creates ORM-aware files for your module, fully wired with Swagger decorators:
+- `module-name.controller.ts` (Decorated with `@ApiTags`, `@ApiOperation`, `@ApiResponse`, etc.)
+- `module-name.service.ts` (Uses the correct Repository implementation based on your active ORM)
+- `module-name.module.ts` 
+- `dto/create-module-name.dto.ts` & `update-module-name.dto.ts`
+- `dto/module-name.dto.ts` (With `@ApiProperty` decorators for Swagger schemas)
+
+---
+
+## Base CRUD Architecture & Security-Safe Features
+
+During initial setup, if you select **"Enable Base CRUD Architecture? (Y/n)"**, your project is scaffolded with a robust, abstract generic base for controllers and services.
+
+- **`BaseService` & `BaseController`**: Extensible classes that handle standard operations.
+- **Security-First**: 
+  - Protects against Mass Assignment via strict `ValidationPipe` settings (`whitelist: true`, `forbidNonWhitelisted: true`).
+  - Ensures valid inputs via strict parameter parsing (e.g., `@ParseUUIDPipe`).
+- **Resilient**: Built-in Soft-delete support and global `NotFoundException` handling.
+
+---
+
+## Auto-Generated Swagger Docs (@nestjs/swagger)
+
+Say goodbye to manual API documentation! 
+
+- **Swagger UI** is enabled out-of-the-box and accessible at `/api/docs`.
+- Every route scaffolded by the initial CLI setup or the `g` sub-command comes pre-configured with `@nestjs/swagger` decorators.
+- DTOs automatically generate OpenAPI schemas using `@ApiProperty` and `@ApiPropertyOptional`.
+- Endpoint descriptions, expected parameters, and HTTP response codes are fully documented instantly.
+
+---
+
+## See It in Action
 
 ### 60-Second Complete Setup
 
 ```bash
 # 1. Create project (10 seconds)
-npx create-nestjs-auth@latest my-api
+npx @astralicc/create-nestjs-auth-swagger@latest my-api
 
 # 2. Answer prompts (20 seconds)
 #  Project name: my-api
 #  ORM: Prisma (or Drizzle, TypeORM, Mongoose)
 #  Database: PostgreSQL (or MySQL, SQLite, MongoDB)
+#  Enable Base CRUD: Yes
 #  Package manager: pnpm
 #  Install dependencies: Yes
 #  Database URL: postgresql://localhost:5432/mydb
@@ -200,6 +260,7 @@ npx create-nestjs-auth@latest my-api
 
 # 3. Your API is live! (30 seconds)
 #  http://localhost:8080/api/v1
+#  http://localhost:8080/api/docs (Swagger UI)
 ```
 
 ### Live Example
@@ -211,26 +272,8 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -c cookies.txt \
   -d '{"email":"admin@example.com","password":"Admin@123"}'
 
-# Response:
-{
-  "user": {
-    "id": "cm3k5j8l9...",
-    "email": "admin@example.com",
-    "fullName": "Admin User",
-    "role": "ADMIN"
-  }
-}
-
 # Access protected route
 curl http://localhost:8080/api/v1/auth/me -b cookies.txt
-
-# Response:
-{
-  "id": "cm3k5j8l9...",
-  "email": "admin@example.com",
-  "role": "ADMIN",
-  "isActive": true
-}
 ```
 
 ### What the Code Looks Like
@@ -281,7 +324,7 @@ graph LR
     E --> F[Configure Database]
     F --> G[Run Migrations]
     G --> H[Seed Admin User]
-    H --> I[Start Dev Server]
+    H --> I[Start Dev Server & Swagger]
     
     style A fill:#667eea
     style I fill:#48bb78
@@ -297,6 +340,7 @@ my-app/
 │   │   ├── users/         # User CRUD + profile
 │   │   └── health/        # Health check endpoints
 │   ├── common/
+│   │   ├── base/          # Abstract BaseController & BaseService
 │   │   ├── guards/        # JWT & RBAC guards
 │   │   ├── decorators/    # @Roles(), @Public(), @GetUser()
 │   │   └── filters/       # Exception handling
@@ -317,68 +361,26 @@ my-app/
 **Zero configuration. Just answer questions:**
 
 ```bash
-npx create-nestjs-auth@latest
+npx @astralicc/create-nestjs-auth-swagger@latest
 ```
 
-The CLI guides you through:
-1. Project name
-2. Package manager (auto-detected)
-3. Dependency installation
-4. Git initialization
-5. JWT secret generation
-6. Database configuration
-7. Database setup (migrations + seed)
-8. Dev server launch
-
-**Perfect for:** First-time users, learning, rapid prototyping
-
-### 2. Quick Mode
-
-**Fastest way to get started:**
-
-```bash
-npx create-nestjs-auth@latest my-app
-cd my-app
-# Edit .env with your database URL
-npm run prisma:generate && npm run prisma:migrate && npm start:dev
-```
-
-**Perfect for:** Experienced users who know the drill
-
-### 3. Automation Mode
+### 2. Automation Mode
 
 **For CI/CD and scripts:**
 
 ```bash
 # Skip all prompts, use defaults
-npx create-nestjs-auth@latest my-app --yes
-
-# Custom package manager
-npx create-nestjs-auth@latest my-app --package-manager pnpm
-
-# Skip dependency installation
-npx create-nestjs-auth@latest my-app --skip-install
-
-# Skip git initialization
-npx create-nestjs-auth@latest my-app --skip-git
-
-# Combine options
-npx create-nestjs-auth@latest my-app --yes --skip-git --package-manager bun
+npx @astralicc/create-nestjs-auth-swagger@latest my-app --yes
 
 # Specify ORM and database
-npx create-nestjs-auth@latest my-app --orm drizzle --database postgres --yes
-
-# MongoDB with Mongoose
-npx create-nestjs-auth@latest my-app --orm mongoose --yes
+npx @astralicc/create-nestjs-auth-swagger@latest my-app --orm drizzle --database postgres --yes
 ```
-
-**Perfect for:** CI/CD pipelines, automation scripts, Docker builds
 
 ---
 
 ## Complete API Reference
 
-Your generated API includes these endpoints out of the box:
+Your generated API includes these endpoints out of the box (fully documented in Swagger):
 
 ### Authentication
 
@@ -405,50 +407,6 @@ Your generated API includes these endpoints out of the box:
 |----------|--------|-------------|------|
 | `/users/profile` | GET | Get own profile |  |
 | `/users/profile` | PATCH | Update own profile |  |
-
-### Health Checks
-
-| Endpoint | Method | Description | Auth |
-|----------|--------|-------------|------|
-| `/health` | GET | Full health check |  |
-| `/health/ready` | GET | Readiness probe (K8s) |  |
-| `/health/live` | GET | Liveness probe (K8s) |  |
-
-<details>
-<summary><b> Example: Login & Access Protected Route</b></summary>
-
-```bash
-# 1. Login and save cookies
-curl -X POST http://localhost:8080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -c cookies.txt \
-  -d '{"email":"admin@example.com","password":"Admin@123"}'
-
-# Response:
-# {
-#   "user": {
-#     "id": "cm3k5j8l9...",
-#     "email": "admin@example.com",
-#     "role": "ADMIN"
-#   }
-# }
-
-# 2. Access protected route (uses cookies)
-curl http://localhost:8080/api/v1/auth/me -b cookies.txt
-
-# 3. List all users (admin only)
-curl http://localhost:8080/api/v1/users -b cookies.txt
-
-# 4. Refresh your token
-curl -X POST http://localhost:8080/api/v1/auth/refresh \
-  -b cookies.txt \
-  -c cookies.txt
-
-# 5. Logout
-curl -X POST http://localhost:8080/api/v1/auth/logout -b cookies.txt
-```
-
-</details>
 
 <details>
 <summary><b> Example: Add RBAC to Your Endpoint</b></summary>
@@ -492,14 +450,13 @@ export class PostsController {
 
 | Option | Description | Example |
 |--------|-------------|---------|
-| `--orm <orm>` | Select ORM (prisma, drizzle, typeorm, mongoose) | `npx create-nestjs-auth@latest my-app --orm drizzle` |
-| `--database <db>` | Select database (postgres, mysql, sqlite, mongodb) | `npx create-nestjs-auth@latest my-app --database mysql` |
-| `--yes` | Skip all prompts, use defaults | `npx create-nestjs-auth@latest my-app --yes` |
-| `--skip-install` | Don't install dependencies | `npx create-nestjs-auth@latest my-app --skip-install` |
-| `--package-manager <pm>` | Force package manager (npm, pnpm, yarn, bun) | `npx create-nestjs-auth@latest my-app --package-manager pnpm` |
-| `--skip-git` | Don't initialize git repository | `npx create-nestjs-auth@latest my-app --skip-git` |
-| `--help` | Show help message | `npx create-nestjs-auth@latest --help` |
-| `--version` | Show CLI version | `npx create-nestjs-auth@latest --version` |
+| `g [module]` | Generate new CRUD module | `npx @astralicc/create-nestjs-auth-swagger g products` |
+| `--orm <orm>` | Select ORM (prisma, drizzle, typeorm, mongoose) | `npx @astralicc/create-nestjs-auth-swagger@latest my-app --orm drizzle` |
+| `--database <db>` | Select database (postgres, mysql, sqlite, mongodb) | `npx @astralicc/create-nestjs-auth-swagger@latest my-app --database mysql` |
+| `--yes` | Skip all prompts, use defaults | `npx @astralicc/create-nestjs-auth-swagger@latest my-app --yes` |
+| `--skip-install` | Don't install dependencies | `npx @astralicc/create-nestjs-auth-swagger@latest my-app --skip-install` |
+| `--package-manager <pm>` | Force package manager (npm, pnpm, yarn, bun) | `npx @astralicc/create-nestjs-auth-swagger@latest my-app --package-manager pnpm` |
+| `--help` | Show help message | `npx @astralicc/create-nestjs-auth-swagger@latest --help` |
 
 ---
 
@@ -510,36 +467,6 @@ export class PostsController {
 | **Node.js** | >= 20.x | Native fetch, improved performance |
 | **Database** | PostgreSQL 16+, MySQL 8+, SQLite 3+, or MongoDB 6+ | Your choice! |
 | **Package Manager** | npm/pnpm/yarn/bun | Any works, auto-detected |
-
-> **Note:** The CLI automatically checks your Node.js version before proceeding.
-
-### Database Setup Options
-
-**PostgreSQL (Local with Docker)**
-```bash
-docker run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:16
-```
-
-**MySQL (Local with Docker)**
-```bash
-docker run --name mysql -e MYSQL_ROOT_PASSWORD=mysql -p 3306:3306 -d mysql:8
-```
-
-**MongoDB (Local with Docker)**
-```bash
-docker run --name mongodb -p 27017:27017 -d mongo:6
-```
-
-**SQLite**
-No setup needed! SQLite creates a local file automatically.
-
-**Managed Database Services**
-- [Supabase](https://supabase.com) - Free PostgreSQL with GUI
-- [Neon](https://neon.tech) - Serverless Postgres, generous free tier
-- [PlanetScale](https://planetscale.com) - Serverless MySQL
-- [MongoDB Atlas](https://www.mongodb.com/atlas) - Free MongoDB cluster
-- [Railway](https://railway.app) - PostgreSQL/MySQL + deployment
-- [Render](https://render.com) - Free PostgreSQL database
 
 ---
 
@@ -556,15 +483,6 @@ Choose the combination that fits your project:
 | **[TypeORM](https://typeorm.io)** | Enterprise apps | Decorators, Active Record & Data Mapper |
 | **[Mongoose](https://mongoosejs.com)** | MongoDB users | Schema validation, middleware, populate |
 
-### Supported Databases
-
-| Database | ORMs | Connection URL Example |
-|----------|------|----------------------|
-| **PostgreSQL** | Prisma, Drizzle, TypeORM | `postgresql://user:pass@localhost:5432/db` |
-| **MySQL** | Prisma, Drizzle, TypeORM | `mysql://user:pass@localhost:3306/db` |
-| **SQLite** | Prisma, Drizzle, TypeORM | `file:./dev.db` |
-| **MongoDB** | Mongoose | `mongodb://localhost:27017/db` |
-
 ### ORM + Database Compatibility
 
 ```
@@ -578,313 +496,32 @@ Choose the combination that fits your project:
 └─────────────┴────────────┴───────┴────────┴─────────┘
 ```
 
-### Which Should I Choose?
-
-**Choose Prisma if:**
-- You want the best developer experience
-- You're new to ORMs
-- You want visual database management (Prisma Studio)
-
-**Choose Drizzle if:**
-- You prefer writing SQL-like code
-- You want a lightweight solution
-- Performance is critical
-
-**Choose TypeORM if:**
-- You're familiar with decorators
-- You need Active Record pattern
-- You're migrating from other languages (Java, C#)
-
-**Choose Mongoose if:**
-- You're using MongoDB
-- You need flexible schemas
-- You want document validation
-
----
-
-## Architecture Overview
-
-### What's Inside
-
-The generated project follows NestJS best practices with a modular architecture:
-
-```
-my-app/
-├── src/
-│   ├── modules/
-│   │   ├── auth/
-│   │   │   ├── auth.controller.ts      # Login, signup, refresh, logout
-│   │   │   ├── auth.service.ts         # JWT logic, token rotation
-│   │   │   └── auth.module.ts
-│   │   │
-│   │   ├── users/
-│   │   │   ├── users.controller.ts     # CRUD endpoints
-│   │   │   ├── users.service.ts        # User business logic
-│   │   │   └── dto/                    # Data transfer objects
-│   │   │
-│   │   └── health/
-│   │       └── health.controller.ts    # K8s-ready health checks
-│   │
-│   ├── common/
-│   │   ├── decorators/             # @Roles(), @Public(), @GetUser()
-│   │   ├── guards/                 # JWT + RBAC guards
-│   │   ├── interceptors/           # Response formatting
-│   │   ├── filters/                # Exception handling
-│   │   └── validators/             # Custom validation rules
-│   │
-│   ├── config/
-│   │   ├── config.module.ts        # Environment config
-│   │   ├── env.validation.ts       # Zod validation
-│   │   └── logger.config.ts        # Pino logger setup
-│   │
-│   └── database/                   # ORM-specific setup
-│       # Prisma:   prisma.service.ts, prisma.module.ts
-│       # Drizzle:  drizzle.ts, schema.ts, database.module.ts
-│       # TypeORM:  entities/, database.module.ts
-│       # Mongoose: schemas/, database.module.ts
-│
-├── prisma/ (if using Prisma)
-│   ├── schema.prisma               # Database models
-│   ├── seed.ts                     # Default admin user
-│   └── migrations/                 # Version-controlled DB changes
-│
-├── drizzle/ (if using Drizzle)
-│   ├── drizzle.config.ts           # Drizzle configuration
-│   └── migrations/                 # SQL migrations
-│
-├── test/
-│   ├── app.e2e-spec.ts             # End-to-end tests
-│   └── jest-e2e.json               # Test configuration
-│
-├── .env                            # Your secrets (auto-generated)
-├── .env.example                    # Template for team
-├── nest-cli.json                   # NestJS config
-├── tsconfig.json                   # TypeScript config
-└── eslint.config.mjs               # Linting rules
-```
-
-### Key Design Patterns
-
-- **Guards** - JWT validation + RBAC on every route
-- **Interceptors** - Transform responses, add metadata
-- **Decorators** - Clean syntax for auth requirements
-- **DTOs** - Type-safe request validation
-- **ORM Agnostic** - Same API regardless of database choice
-
----
-
-## Common Use Cases
-
-### 1. Add a New Protected Endpoint
-
-```typescript
-// src/modules/posts/posts.controller.ts
-import { Controller, Get, Post, Body } from '@nestjs/common';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { GetUser } from '@/common/decorators/get-user.decorator';
-import { UserRole } from '@prisma/client';
-
-@Controller('posts')
-export class PostsController {
-  // Anyone can view posts
-  @Public()
-  @Get()
-  findAll() {
-    return { posts: [] };
-  }
-
-  // Authenticated users can create posts
-  @Post()
-  create(@GetUser() user, @Body() createPostDto) {
-    return { post: { authorId: user.id, ...createPostDto } };
-  }
-
-  // Only admins can delete posts
-  @Roles(UserRole.ADMIN)
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return { message: 'Post deleted' };
-  }
-}
-```
-
-### 2. Add a New User Role
-
-```typescript
-// 1. Update prisma/schema.prisma
-enum UserRole {
-  USER
-  ADMIN
-  MODERATOR  //  Add new role
-}
-
-// 2. Run migration
-npm run prisma:migrate
-
-// 3. Use it in your code
-@Roles(UserRole.MODERATOR)
-@Patch('posts/:id')
-moderatePost() { }
-```
-
-### 3. Customize JWT Token Expiry
-
-```env
-# .env
-JWT_ACCESS_EXPIRY=15m     # Short-lived access token
-JWT_REFRESH_EXPIRY=7d     # Refresh every week
-```
-
-### 4. Add Email Verification
-
-```typescript
-// Add field to User model
-model User {
-  emailVerified DateTime?
-  verificationToken String?
-}
-
-// Add verification endpoint
-@Post('verify-email')
-async verifyEmail(@Body() dto: VerifyEmailDto) {
-  // Your logic here
-}
-```
-
-### 5. Deploy to Production
-
-```bash
-# Build for production
-npm run build
-
-# Run production server
-npm run start:prod
-
-# Or use Docker (Dockerfile included)
-docker build -t my-app .
-docker run -p 8080:8080 my-app
-```
-
----
-
-## Security Features Explained
-
-### 1. Token Rotation
-Every time you refresh your access token, the old refresh token is **invalidated**. If someone steals your refresh token, they can only use it once.
-
-```typescript
-// Automatic in generated code
-async refresh(token: string) {
-  // 1. Validate old token
-  // 2. Generate NEW tokens
-  // 3. Invalidate OLD refresh token
-  // 4. Return new tokens
-}
-```
-
-### 2. HttpOnly Cookies (No XSS)
-Tokens are stored in **HttpOnly** cookies that JavaScript can't access. Even if malicious JS runs on your site, it can't steal tokens.
-
-```typescript
-// Set in response automatically
-res.cookie('accessToken', token, {
-  httpOnly: true,     // JS can't read
-  secure: true,       // HTTPS only
-  sameSite: 'strict'  // CSRF protection
-});
-```
-
-### 3. Bcrypt 12 Rounds
-Passwords are hashed with bcrypt using 12 rounds (2025 security baseline). Each password takes ~250ms to hash, making brute-force attacks impractical.
-
-```typescript
-// Automatic in generated code
-const hashedPassword = await bcrypt.hash(password, 12);
-```
-
-### 4. Rate Limiting
-- **5 attempts/minute** on auth endpoints
-- **10 requests/minute** globally per IP
-- Prevents brute-force attacks
-
-### 5. PII-Safe Logging
-Passwords and tokens are automatically **redacted** from logs:
-
-```json
-// What gets logged:
-{"level":30,"msg":"POST /auth/login","email":"[REDACTED]","password":"[REDACTED]"}
-
-// Not this:
-{"email":"user@example.com","password":"SecurePass123"}
-```
-
 ---
 
 ## Comparison with Alternatives
 
 ### vs. Building from Scratch
 
-| Feature | From Scratch | create-nestjs-auth |
+| Feature | From Scratch | @astralicc/create-nestjs-auth-swagger |
 |---------|-------------|-------------------|
-| **Time to setup** | 30-40 hours | 3 minutes |
+| **Time to setup** | 34-46 hours | 3 minutes |
 | **Security audit** | You do it (risky) | Battle-tested |
 | **Token rotation** | Implement yourself |  Included |
 | **RBAC** | Build guards |  Decorator-based |
 | **Rate limiting** | Manual setup |  Pre-configured |
-| **Testing** | Write tests |  E2E tests included |
-| **Maintenance** | Your responsibility | Updates via CLI |
-
-### vs. NestJS Official Auth Template
-
-| Feature | Official Template | create-nestjs-auth |
-|---------|------------------|-------------------|
-| **Refresh tokens** |  Basic example |  Full rotation |
-| **Multi-device** |  Not included |  5 devices/user |
-| **Database** |  DIY |  Prisma + migrations |
-| **RBAC** |  Manual |  Decorator-based |
-| **Production-ready** |  Example code |  Battle-tested |
-| **Interactive setup** |  No |  Guided wizard |
-
-### vs. Third-Party Auth (Auth0, Firebase)
-
-| Feature | Auth0/Firebase | create-nestjs-auth |
-|---------|---------------|-------------------|
-| **Cost** | $23+/month | **Free (MIT)** |
-| **Data control** | Their servers | **Your database** |
-| **Customization** | Limited | **Unlimited** |
-| **Vendor lock-in** | Yes | **No** |
-| **Learning curve** | Their API | **Standard NestJS** |
-| **Offline dev** | Needs internet | **Local dev** |
-
-### Why Not Just Use Passport?
-
-Passport is great, but it's just **one piece** of the puzzle. You still need:
-- Database models and migrations
-- Refresh token rotation logic
-- RBAC guards and decorators
-- Rate limiting
-- Cookie management
-- PII-safe logging
-- Testing setup
-
-**create-nestjs-auth gives you all of this**, integrated and tested together.
+| **CRUD Generator** | DIY |  Included (`g` command) |
+| **Swagger Docs** | Manual annotations |  Auto-generated |
 
 ---
 
 ## Troubleshooting
 
 <details>
-<summary><b> "Command not found: create-nestjs-auth"</b></summary>
+<summary><b> "Command not found: @astralicc/create-nestjs-auth-swagger"</b></summary>
 
 Use `npx` with `@latest` tag:
 ```bash
-npx create-nestjs-auth@latest my-app
-```
-
-Or install globally:
-```bash
-npm install -g create-nestjs-auth
-create-nestjs-auth my-app
+npx @astralicc/create-nestjs-auth-swagger@latest my-app
 ```
 
 </details>
@@ -894,23 +531,9 @@ create-nestjs-auth my-app
 
 Reinstall the CLI:
 ```bash
-npm uninstall -g create-nestjs-auth
+npm uninstall -g @astralicc/create-nestjs-auth-swagger
 npm cache clean --force
-npm install -g create-nestjs-auth
-```
-
-</details>
-
-<details>
-<summary><b> Node.js version error</b></summary>
-
-Upgrade to Node.js 20+:
-```bash
-# Using nvm (recommended)
-nvm install 20
-nvm use 20
-
-# Or download from nodejs.org
+npm install -g @astralicc/create-nestjs-auth-swagger
 ```
 
 </details>
@@ -920,38 +543,9 @@ nvm use 20
 
 Check your PostgreSQL is running:
 ```bash
-# Check if PostgreSQL is running
 pg_isready
-
-# Or test connection
 psql postgresql://user:password@localhost:5432/mydb
 ```
-
-Common fixes:
-- Ensure PostgreSQL is installed and running
-- Check DATABASE_URL in `.env` is correct
-- Verify database exists: `createdb mydb`
-- Check firewall/port 5432 is open
-
-</details>
-
-<details>
-<summary><b> "JWT verification failed"</b></summary>
-
-Regenerate your JWT secrets:
-```bash
-openssl rand -base64 32
-# Update JWT_ACCESS_SECRET in .env
-
-openssl rand -base64 32
-# Update JWT_REFRESH_SECRET in .env
-```
-
-Then restart server:
-```bash
-npm run start:dev
-```
-
 </details>
 
 <details>
@@ -961,103 +555,6 @@ Option 1: Change port in `.env`:
 ```env
 PORT=3000
 ```
-
-Option 2: Kill process using port 8080:
-```bash
-# Linux/Mac
-lsof -ti:8080 | xargs kill -9
-
-# Windows PowerShell
-Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess | Stop-Process
-```
-
-</details>
-
-<details>
-<summary><b> CORS errors in browser</b></summary>
-
-Update `CORS_ORIGIN` in `.env`:
-```env
-# Single origin
-CORS_ORIGIN=http://localhost:3000
-
-# Multiple origins
-CORS_ORIGIN=http://localhost:3000,http://localhost:5173
-```
-
-Restart server after changes.
-
-</details>
-
-<details>
-<summary><b> Prisma Client errors</b></summary>
-
-Regenerate Prisma Client:
-```bash
-npm run prisma:generate
-```
-
-If that doesn't work, clean install:
-```bash
-rm -rf node_modules
-npm install
-npm run prisma:generate
-```
-
-</details>
-
-<details>
-<summary><b> Drizzle migration errors</b></summary>
-
-Generate and run migrations:
-```bash
-npm run drizzle:generate
-npm run drizzle:migrate
-```
-
-Check your `drizzle.config.ts` has the correct database URL.
-
-</details>
-
-<details>
-<summary><b> TypeORM connection errors</b></summary>
-
-Check your `database.module.ts` configuration matches your `.env`:
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/mydb
-```
-
-Run migrations:
-```bash
-npm run typeorm:migration:run
-```
-
-</details>
-
-<details>
-<summary><b> Mongoose connection errors</b></summary>
-
-Ensure MongoDB is running and check your connection string:
-```env
-DATABASE_URL=mongodb://localhost:27017/mydb
-```
-
-For MongoDB Atlas, use the full connection string from your dashboard.
-
-</details>
-
-<details>
-<summary><b> Still stuck?</b></summary>
-
-Open an issue with:
-- Node.js version (`node --version`)
-- Package manager & version
-- Operating system
-- Full error message
-- Steps to reproduce
-
-[Report Issue ](https://github.com/masabinhok/create-nestjs-auth/issues)
-
 </details>
 
 ---
@@ -1066,20 +563,6 @@ Open an issue with:
 
 We love contributions! Here's how you can help:
 
-### Found a Bug?
-1. Check if it's already reported in [Issues](https://github.com/masabinhok/create-nestjs-auth/issues)
-2. If not, open a new issue with:
-   - Clear title
-   - Steps to reproduce
-   - Expected vs actual behavior
-   - Your environment (Node version, OS, etc.)
-
-### Have an Idea?
-1. Open a [Discussion](https://github.com/masabinhok/create-nestjs-auth/discussions)
-2. Describe your idea and use case
-3. Get feedback from the community
-
-### Want to Contribute Code?
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes
@@ -1089,44 +572,6 @@ We love contributions! Here's how you can help:
 7. Open a Pull Request
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
----
-
-## Showcase
-
-**Built something amazing with this CLI?** We'd love to feature your project!
-
-### Projects Using create-nestjs-auth
-
-<table>
-<tr>
-<td align="center" width="33%">
-<b>Your Project Here</b><br>
-<sub>Be the first!</sub>
-</td>
-<td align="center" width="33%">
-<b>Submit Your Project</b><br>
-<sub><a href="https://github.com/masabinhok/create-nestjs-auth/discussions/new?category=show-and-tell">Share it here </a></sub>
-</td>
-<td align="center" width="33%">
-<b>Get Featured</b><br>
-<sub>Open source or commercial</sub>
-</td>
-</tr>
-</table>
-
-### Success Stories
-
-> *"Saved me 2 weeks of setup time. The security patterns alone are worth it."*  
->  **Developer** building a SaaS platform
-
-> *"Perfect starter for our microservices. Clean code, great documentation."*  
->  **CTO** at a tech startup
-
-> *"Used it for my university project. Got an A+ and learned best practices."*  
->  **Student** learning backend development
-
-**Share your story:** Open a [discussion](https://github.com/masabinhok/create-nestjs-auth/discussions)
 
 ---
 
@@ -1142,167 +587,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 | [Drizzle](https://orm.drizzle.team) | Latest | Lightweight ORM (option 2) |
 | [TypeORM](https://typeorm.io) | 0.3.x | Decorator-based ORM (option 3) |
 | [Mongoose](https://mongoosejs.com) | 8.x | MongoDB ODM (option 4) |
-| [PostgreSQL](https://www.postgresql.org) | 16+ | Relational database |
-| [MySQL](https://www.mysql.com) | 8+ | Relational database |
-| [SQLite](https://www.sqlite.org) | 3+ | Embedded database |
-| [MongoDB](https://www.mongodb.com) | 6+ | Document database |
+| [Swagger](https://swagger.io/) | - | API Documentation |
 | [Passport JWT](https://www.passportjs.org) | - | JWT authentication |
-| [Bcrypt](https://github.com/kelektiv/node.bcrypt.js) | - | Password hashing |
-| [Zod](https://zod.dev) | - | Schema validation |
-| [Pino](https://getpino.io) | - | Fast JSON logging |
-| [Jest](https://jestjs.io) | - | Testing framework |
 
 </div>
-
----
-
-## Links & Resources
-
-### Documentation
-- [Full Template Documentation](https://github.com/masabinhok/nestjs-jwt-rbac-boilerplate)
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute
-- [Security Policy](SECURITY.md) - Reporting vulnerabilities
-- [Changelog](CHANGELOG.md) - Version history
-
-### Community
-- [GitHub Discussions](https://github.com/masabinhok/create-nestjs-auth/discussions) - Ask questions, share ideas
-- [Report Issues](https://github.com/masabinhok/create-nestjs-auth/issues) - Found a bug? Let us know
-- [View Changelog](CHANGELOG.md) - See what's new
-
-### Learning Resources
-- [NestJS Documentation](https://docs.nestjs.com)
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [JWT.io](https://jwt.io) - Learn about JWT tokens
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/) - Web security basics
-
-### Related Projects
-- [create-next-app](https://nextjs.org/docs/api-reference/create-next-app) - Create Next.js apps
-- [create-t3-app](https://create.t3.gg) - Full-stack TypeScript
-- [nest-cli](https://docs.nestjs.com/cli/overview) - Official NestJS CLI
-
----
-
-## FAQ
-
-<details>
-<summary><b>Which ORM should I choose?</b></summary>
-
-- **Prisma** - Best for most projects. Great developer experience, type safety, and visual database management.
-- **Drizzle** - Best for SQL lovers who want lightweight, performant queries.
-- **TypeORM** - Best for enterprise apps or devs coming from Java/C# backgrounds.
-- **Mongoose** - Required if you're using MongoDB.
-
-All ORMs produce the same API endpointsyou can switch later if needed.
-
-</details>
-
-<details>
-<summary><b>Can I use MySQL/SQLite/MongoDB?</b></summary>
-
-**Yes!** The CLI supports:
-- **PostgreSQL** - With Prisma, Drizzle, or TypeORM
-- **MySQL** - With Prisma, Drizzle, or TypeORM
-- **SQLite** - With Prisma, Drizzle, or TypeORM
-- **MongoDB** - With Mongoose
-
-Just select your preferred combination during setup.
-
-</details>
-
-<details>
-<summary><b>Can I switch ORMs after project creation?</b></summary>
-
-It's possible but requires manual work. The auth/user service layer has the same interface across all ORMs, but you'd need to:
-1. Install new ORM dependencies
-2. Replace database module and service files
-3. Migrate your data
-
-We recommend choosing the right ORM upfront.
-
-</details>
-
-<details>
-<summary><b>Can I customize the template before generating?</b></summary>
-
-Not directly, but you can fork the repo and modify the `template/` directory. Then publish your own version:
-
-```bash
-npm publish --access public
-```
-
-</details>
-
-<details>
-<summary><b>Is this production-ready?</b></summary>
-
-**Yes!** The generated code follows security best practices and has been battle-tested. However, always:
-- Review the code before deploying
-- Add your own business logic
-- Set up proper monitoring
-- Use environment-specific configs
-
-</details>
-
-<details>
-<summary><b>How do I add OAuth (Google, GitHub, etc.)?</b></summary>
-
-Check out these guides:
-- [Passport Google OAuth2](http://www.passportjs.org/packages/passport-google-oauth2/)
-- [Passport GitHub](http://www.passportjs.org/packages/passport-github/)
-
-The generated project uses Passport.js, so adding OAuth is straightforward.
-
-</details>
-
-<details>
-<summary><b>Can I use this in a monorepo?</b></summary>
-
-Yes! Just run the CLI in your monorepo's apps or packages directory:
-
-```bash
-cd apps/backend
-npx create-nestjs-auth@latest api
-```
-
-</details>
-
-<details>
-<summary><b>How do I add email verification?</b></summary>
-
-1. Add fields to User model: `emailVerified`, `verificationToken`
-2. Create verification endpoint
-3. Send email with token (use Nodemailer, SendGrid, etc.)
-4. Verify token on confirmation
-
-Check out the template codethe patterns are already there!
-
-</details>
-
-<details>
-<summary><b>Is TypeScript required?</b></summary>
-
-Yes, the generated project is TypeScript-only. NestJS works best with TypeScript, and it provides type safety that prevents many common bugs.
-
-</details>
-
-<details>
-<summary><b>How often is this updated?</b></summary>
-
-We actively maintain this project and update dependencies regularly. Check the [CHANGELOG](CHANGELOG.md) for recent updates.
-
-</details>
-
----
-
-## Acknowledgments
-
-This project wouldn't exist without these amazing technologies:
-
-- **[NestJS](https://nestjs.com)** - The progressive Node.js framework
-- **[Prisma](https://www.prisma.io)** - Next-generation database toolkit
-- **[PostgreSQL](https://www.postgresql.org)** - World's most advanced open source database
-
-Special thanks to the open-source community for feedback and contributions!
 
 ---
 
@@ -1312,73 +600,17 @@ Special thanks to the open-source community for feedback and contributions!
 
 See [LICENSE](LICENSE) for full details.
 
-```
-Copyright (c) 2025 Sabin Shrestha
-```
-
 ---
 
 <div align="center">
-
----
-
-## Before You Go...
 
 ### Did this save you time?
 
  **Star this repository** to help others discover it!
 
-<a href="https://github.com/masabinhok/create-nestjs-auth/stargazers">
-  <img src="https://img.shields.io/github/stars/masabinhok/create-nestjs-auth?style=social" alt="GitHub stars">
-</a>
-
-### Share with your network
-
-Help other developers save 40 hours of work:
-
-[![Twitter](https://img.shields.io/badge/Share%20on-Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/intent/tweet?text=Just%20saved%2040%20hours%20with%20create-nestjs-auth%20%20Production-ready%20NestJS%20authentication%20in%203%20minutes!&url=https://github.com/masabinhok/create-nestjs-auth&hashtags=NestJS,TypeScript,JWT,WebDev)
-[![LinkedIn](https://img.shields.io/badge/Share%20on-LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/masabinhok/create-nestjs-auth)
-[![Reddit](https://img.shields.io/badge/Share%20on-Reddit-FF4500?style=for-the-badge&logo=reddit&logoColor=white)](https://www.reddit.com/submit?url=https://github.com/masabinhok/create-nestjs-auth&title=create-nestjs-auth%20-%20Production-ready%20NestJS%20auth%20in%203%20minutes)
-[![Dev.to](https://img.shields.io/badge/Share%20on-Dev.to-0A0A0A?style=for-the-badge&logo=dev.to&logoColor=white)](https://dev.to/new?prefill=---%0Atitle:%20Production-ready%20NestJS%20Authentication%20in%203%20Minutes%0Apublished:%20true%0Atags:%20nestjs,typescript,authentication,webdev%0A---%0A%0ACheck%20out%20create-nestjs-auth:%20https://github.com/masabinhok/create-nestjs-auth)
-
-### Contribute
-
-Found a bug? Have a feature idea? [Open an issue](https://github.com/masabinhok/create-nestjs-auth/issues/new/choose) or submit a PR!
-
-[![Contributors](https://img.shields.io/github/contributors/masabinhok/create-nestjs-auth?style=flat-square)](https://github.com/masabinhok/create-nestjs-auth/graphs/contributors)
-[![Pull Requests](https://img.shields.io/github/issues-pr/masabinhok/create-nestjs-auth?style=flat-square)](https://github.com/masabinhok/create-nestjs-auth/pulls)
-
----
-
-<h3>Built by <a href="https://sabinshrestha69.com.np">Sabin Shrestha</a></h3>
-
-<p>
-  <a href="https://github.com/masabinhok">
-    <img src="https://img.shields.io/badge/GitHub-masabinhok-181717?style=flat-square&logo=github" alt="GitHub">
-  </a>
-  <a href="https://twitter.com/masabinhok">
-    <img src="https://img.shields.io/badge/Twitter-@masabinhok-1DA1F2?style=flat-square&logo=twitter&logoColor=white" alt="Twitter">
-  </a>
-  <a href="https://www.linkedin.com/in/masabinhok">
-    <img src="https://img.shields.io/badge/LinkedIn-masabinhok-0077B5?style=flat-square&logo=linkedin" alt="LinkedIn">
-  </a>
-</p>
-
-<br>
-
-### Sponsors & Supporters
-
-*Your support keeps this project maintained and improved*
-
-<a href="https://github.com/sponsors/masabinhok">
-  <img src="https://img.shields.io/badge/Sponsor-masabinhok-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white" alt="Sponsor">
-</a>
-
----
-
 <sub>
  Generated projects follow <strong>NestJS best practices</strong> and <strong>OWASP security guidelines</strong><br>
- <strong>v2.0.8</strong> | Multi-ORM & Multi-Database Support | December 2025 | MIT License
+ <strong>v2.4.0</strong> | Multi-ORM & Multi-Database Support | MIT License
 </sub>
 
 <br><br>
@@ -1386,4 +618,3 @@ Found a bug? Have a feature idea? [Open an issue](https://github.com/masabinhok/
 **Now go build something amazing!**
 
 </div>
-
