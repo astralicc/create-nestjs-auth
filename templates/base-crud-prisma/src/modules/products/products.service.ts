@@ -48,29 +48,29 @@ class PrismaProductRepository
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateProductDto): Promise<ProductEntity> {
-    return this.prisma.product.create({ data: dto }) as Promise<ProductEntity>;
+    return (this.prisma as any).product.create({ data: dto }) as Promise<ProductEntity>;
   }
 
   async findAll(p: PaginationQueryDto): Promise<{ data: ProductEntity[]; total: number }> {
     const { page = 1, limit = 10 } = p;
     const skip = (page - 1) * limit;
     const [data, total] = await this.prisma.$transaction([
-      this.prisma.product.findMany({ where: { deletedAt: null }, skip, take: limit, orderBy: { createdAt: 'desc' } }),
-      this.prisma.product.count({ where: { deletedAt: null } }),
+      (this.prisma as any).product.findMany({ where: { deletedAt: null }, skip, take: limit, orderBy: { createdAt: 'desc' } }),
+      (this.prisma as any).product.count({ where: { deletedAt: null } }),
     ]);
     return { data: data as ProductEntity[], total };
   }
 
   async findOne(id: string): Promise<ProductEntity | null> {
-    return this.prisma.product.findFirst({ where: { id, deletedAt: null } }) as Promise<ProductEntity | null>;
+    return (this.prisma as any).product.findFirst({ where: { id, deletedAt: null } }) as Promise<ProductEntity | null>;
   }
 
   async update(id: string, dto: UpdateProductDto): Promise<ProductEntity> {
-    return this.prisma.product.update({ where: { id }, data: dto }) as Promise<ProductEntity>;
+    return (this.prisma as any).product.update({ where: { id }, data: dto }) as Promise<ProductEntity>;
   }
 
   async remove(id: string): Promise<ProductEntity> {
-    return this.prisma.product.update({ where: { id }, data: { deletedAt: new Date() } }) as Promise<ProductEntity>;
+    return (this.prisma as any).product.update({ where: { id }, data: { deletedAt: new Date() } }) as Promise<ProductEntity>;
   }
 }
 
@@ -88,13 +88,13 @@ export class ProductsService extends BaseService<ProductEntity, CreateProductDto
   }
 
   async findBySku(sku: string): Promise<ProductEntity> {
-    const p = await this.prisma.product.findFirst({ where: { sku, deletedAt: null } });
+    const p = await (this.prisma as any).product.findFirst({ where: { sku, deletedAt: null } });
     if (!p) throw new NotFoundException(`Product with SKU "${sku}" was not found`);
     return p as ProductEntity;
   }
 
   async adjustStock(id: string, delta: number): Promise<ProductEntity> {
     await this.findOne(id);
-    return this.prisma.product.update({ where: { id }, data: { stock: { increment: delta } } }) as Promise<ProductEntity>;
+    return (this.prisma as any).product.update({ where: { id }, data: { stock: { increment: delta } } }) as Promise<ProductEntity>;
   }
 }
