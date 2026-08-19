@@ -386,44 +386,6 @@ export class ${pascalName}Module {}
 `;
 }
 
-@Module({
-  imports: [MongooseModule.forFeature([{ name: '${pascalName}', schema: null /* ${pascalName}Schema */ }])],
-  controllers: [${pascalName}Controller],
-  providers: [${pascalName}Service],
-  exports: [${pascalName}Service],
-})
-export class ${pascalName}Module {}\`;
-  } else if (orm === 'drizzle') {
-    return `import { Module } from '@nestjs/common';
-import { ${pascalName}Controller } from './${kebabName}.controller';
-import { ${pascalName}Service } from './${kebabName}.service';
-import { DatabaseModule } from '../../database/database.module';
-
-@Module({
-  imports: [DatabaseModule],
-  controllers: [${pascalName}Controller],
-  providers: [${pascalName}Service],
-  exports: [${pascalName}Service],
-})
-export class ${pascalName}Module {}\`;
-  }
-
-  // DEFAULT (PRISMA)
-  return `import { Module } from '@nestjs/common';
-import { ${pascalName}Controller } from './${kebabName}.controller';
-import { ${pascalName}Service } from './${kebabName}.service';
-import { PrismaModule } from '../../prisma/prisma.module';
-
-@Module({
-  imports: [PrismaModule],
-  controllers: [${pascalName}Controller],
-  providers: [${pascalName}Service],
-  exports: [${pascalName}Service],
-})
-export class ${pascalName}Module {}
-`;
-}
-
 async function generateModule(providedModuleName, targetDir = process.cwd(), specifiedOrm = null) {
   try {
     const options = await promptForModuleOptions(providedModuleName);
