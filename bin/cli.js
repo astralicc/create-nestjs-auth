@@ -30,6 +30,11 @@ const {
   generateModule,
 } = require(path.join(packageRoot, 'src'));
 
+program
+  .name('create-nestjs-auth')
+  .version(CLI_VERSION)
+  .description('Create a production-ready NestJS authentication system with your choice of ORM and database');
+
 // ==================== GENERATE COMMAND ====================
 program
   .command('generate [module-name]')
@@ -45,13 +50,10 @@ program
     }
   });
 
-// ==================== MAIN CLI ====================
-
+// ==================== MAIN SCAFFOLD COMMAND (DEFAULT) ====================
 program
-  .name('create-nestjs-auth')
-  .version(CLI_VERSION)
-  .description('Create a production-ready NestJS authentication system with your choice of ORM and database')
-  .argument('[app-name]', 'Name of your application (optional - will prompt if not provided)')
+  .command('create [app-name]', { isDefault: true })
+  .description('Create a new NestJS Auth project')
   .option('--skip-install', 'Skip automatic dependency installation')
   .option('--package-manager <pm>', 'Package manager to use (npm|pnpm|yarn|bun)')
   .option('--skip-git', 'Skip git repository initialization')
@@ -91,7 +93,7 @@ program
         console.log(chalk.gray(`   Swagger: ${chalk.green('Enabled')}`));
       }
       if (projectOptions.baseCrud) {
-        console.log(chalk.gray(`   Base CRUD: ${chalk.green('Enabled')}`) );
+        console.log(chalk.gray(`   Base CRUD: ${chalk.green('Enabled')}`));
       }
       console.log('');
 
@@ -219,4 +221,4 @@ program
     }
   });
 
-program.parse();
+program.parse(process.argv);
