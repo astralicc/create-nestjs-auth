@@ -5,6 +5,14 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.10] - 2026-08-21
+
+### Fixed
+- **Restored Products controller and DTO files** — Restored `products.controller.ts`, `create-product.dto.ts`, `update-product.dto.ts`, and `product.dto.ts` into the `base-crud` and `base-crud-*` templates to eliminate TypeScript compilation errors (`TS2307: Cannot find module './products.controller'` / `Cannot find module './dto/create-product.dto'`).
+- **Automated `app.module.ts` registration** — `ProductsModule` (and any module generated via `speedrun-cli generate`) is now automatically imported and registered inside `src/app.module.ts`'s `imports` array upon generation.
+
+---
+
 ## [2.6.9] - 2026-08-21
 
 ### Fixed

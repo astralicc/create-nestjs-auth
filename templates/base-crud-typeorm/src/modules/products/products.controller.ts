@@ -76,4 +76,3 @@ export class ProductsController extends BaseController<
     return super.findOne(id);
   }
 }
-

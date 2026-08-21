@@ -121,6 +121,10 @@ async function generateFromModularTemplates(targetDir, { baseDir, ormDir, dbDir,
         filter: createCopyFilter(baseCrudOrmDir),
       });
     }
+
+    // 6c. Automatically register ProductsModule in src/app.module.ts
+    const { registerInAppModule } = require('./moduleGenerator');
+    await registerInAppModule(targetDir, 'Products', 'products');
   }
 }
 

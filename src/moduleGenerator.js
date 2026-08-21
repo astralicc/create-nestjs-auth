@@ -624,5 +624,6 @@ export class AppModule {}
 module.exports = {
   generateModule,
   promptForModuleOptions,
-  detectOrm
+  detectOrm,
+  registerInAppModule,
 };
