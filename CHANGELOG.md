@@ -5,7 +5,63 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.9] - 2026-08-21
+
+### Fixed
+- **Products module no longer shipped by default** — `src/modules/products/` was incorrectly included in the `base-crud` shared template and therefore copied into every project where `--base-crud` was enabled, even before the user ran `speedrun-cli generate`. The products example files have been moved exclusively into the ORM-specific overlay templates (`base-crud-{orm}`), which are only written during the guided CRUD setup step. The `base-crud` shared layer now only contains the abstract classes (`src/common/base/`) and `CRUD_README.md`.
+- **Seed runs twice on Prisma** — removed the `"prisma": { "seed": "ts-node prisma/seed.ts" }` field from `templates/orm/prisma/package.json`. This field caused Prisma to automatically invoke the seed at the end of every `prisma migrate dev`, while `postSetup.js` also called `npm run prisma:seed` explicitly — resulting in the seed being executed twice and credentials being printed double.
+
+---
+
+## [2.6.8] - 2026-08-21
+
+### Added
+- **Guided CRUD setup step** — `? Do you want to generate your first CRUD module now?` is now part of the main setup flow, positioned after Database (Schema/Migration → Seed) and before Dev server start
+- **`promptCrudGeneration()`** in `postSetup.js` — reusable function that calls `generateModule` with the selected ORM token, and auto-registers the generated module in `src/app.module.ts`
+- **Manual instructions** now include a CRUD generation step (`speedrun-cli generate <name>`) when interactive setup is skipped
+
+### Changed
+- Setup prompt message updated: `"Would you like to complete the setup now? (JWT secrets, database, CRUD)"` to accurately reflect full scope
+- CRUD generation is now **always offered** during guided setup (previously only shown when `--base-crud` flag was set, and appeared _after_ the dev server prompt)
+- Guided setup flow order: **JWT → Database → CRUD → Dev server**
+
+### Fixed
+- **Duplicate CRUD prompt** — removed orphaned CRUD prompt block from `bin/cli.js`; single source of truth is now `postSetup.js`
+- **`registerInAppModule` false positive** — overly broad `includes(${Name}Module)` check replaced with regex word-boundary `\b${Name}Module\b` to prevent partial-name collisions
+- **Drizzle inject token mismatch** — `@Inject('DB_CONNECTION')` corrected to `@Inject('DRIZZLE')` to match the exported token in `database.module.ts`
+- **TypeORM `@InjectRepository(Object)`** — added inline comment guiding users to replace `Object` with their actual entity class
+- Ctrl+C during dev server no longer silently drops the CRUD prompt (prompt now runs _before_ the dev server)
+
+---
+
+## [2.6.0] - 2026-08-18
+
+### Added
+- **Base CRUD Architecture** (`--base-crud` flag) — generates abstract `BaseService<T>` and `BaseController<T>` in `src/common/base/` with full Swagger integration
+- **`BaseService<T>`** — generic CRUD abstraction with `create`, `findAll` (paginated), `findOne`, `update`, `remove` (soft-delete) and automatic `NotFoundException` throwing
+- **`BaseController<T>`** — generic REST controller wiring `BaseService` methods to NestJS route decorators with full `@nestjs/swagger` decorators
+- **Swagger DTO helpers** — `ApiResponseDto<T>`, `PaginatedResponseDto<T>`, `ApiResponseSchema()`, `PaginatedResponseSchema()` utility functions
+- **ORM-specific ProductModule examples** — concrete `ProductsService` + `ProductsModule` templates for all four ORMs (`base-crud-{prisma,typeorm,drizzle,mongoose}`)
+- **`ProductEntity` alias pattern** — each ORM service exports `export type ProductEntity = <OrmType>` so the shared controller imports from a single uniform name
+- **`CRUD_README.md`** — full guide and cheatsheet copied into generated projects when `--base-crud` is enabled
+- **`speedrun-cli generate [module-name]`** (`g` alias) — interactive CRUD module generator:
+  - Full CRUD or Custom Selection (checkbox) for individual operations
+  - ORM auto-detection from `package.json` dependencies
+  - Generates `service`, `controller`, `module`, and `dto/` files
+  - Auto-registers generated module in `src/app.module.ts`
+
+### Changed
+- Generator step 6 split into **6a (shared base-crud)** + **6b (ORM-specific overlay)** for correct template composition
+- `printSuccessHeader` now displays Base CRUD status in success output
+
+### Fixed
+- Prisma template import paths corrected (`../../database/` → `../../prisma/`) to resolve `TS2307` errors
+- Removed direct `@prisma/client` model imports in templates; replaced with local interface stubs to decouple from user schema (`TS2305` fix)
+
+---
+
 ## [2.0.8] - 2025-12-05
+
 
 ### Fixed
 - Fixed template copy failure when CLI is installed globally or via npx (node_modules path check issue)
@@ -91,6 +147,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.6.8 | 2026-08-21 | CRUD generation integrated into guided setup flow + bug fixes |
+| 2.6.0 | 2026-08-18 | Base CRUD Architecture, ORM-specific templates, `generate` command |
+| 2.0.8 | 2025-12-05 | Template copy & Prisma migration prompt fixes |
 | 2.0.0 | 2025-12-04 | Multi-ORM and multi-database support |
 | 1.1.0 | 2025-11-17 | Interactive mode and post-setup automation |
 | 1.0.0 | 2025-11-16 | Initial release with Prisma + PostgreSQL |
