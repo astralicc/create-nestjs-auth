@@ -141,7 +141,7 @@ class TypeOrm${pascalName}Repository implements IBaseRepository<${pascalName}Ent
 export class ${pascalName}Service extends BaseService<${pascalName}Entity, ${createDtoName}, ${updateDtoName}> {
   private readonly repository: TypeOrm${pascalName}Repository;
 
-  constructor(@InjectRepository(Object) private readonly repo: Repository<${pascalName}Entity>) {
+  constructor(@InjectRepository(Object /* Replace with your Entity class, e.g. ${pascalName}Entity */) private readonly repo: Repository<${pascalName}Entity>) {
     super();
     this.repository = new TypeOrm${pascalName}Repository(this.repo);
   }
@@ -259,7 +259,7 @@ class Drizzle${pascalName}Repository implements IBaseRepository<${pascalName}Ent
 export class ${pascalName}Service extends BaseService<${pascalName}Entity, ${createDtoName}, ${updateDtoName}> {
   private readonly repository: Drizzle${pascalName}Repository;
 
-  constructor(@Inject('DB_CONNECTION') private readonly db: any) {
+  constructor(@Inject('DRIZZLE') private readonly db: any) {
     super();
     this.repository = new Drizzle${pascalName}Repository(this.db);
   }
@@ -397,8 +397,8 @@ async function registerInAppModule(targetDir, pascalName, kebabName) {
     let content = await fs.readFile(appModulePath, 'utf8');
     const moduleImport = `import { ${pascalName}Module } from './modules/${kebabName}/${kebabName}.module';`;
     
-    // Cegah duplikasi import
-    if (content.includes(moduleImport) || content.includes(`${pascalName}Module`)) {
+    // Prevent duplicate registration — use exact module name match
+    if (content.includes(moduleImport) || new RegExp(`\\b${pascalName}Module\\b`).test(content)) {
       return true;
     }
 

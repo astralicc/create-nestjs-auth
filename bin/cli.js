@@ -189,21 +189,6 @@ program
           console.log(chalk.cyan('🏗️  Base CRUD: src/common/base/ — see CRUD_README.md'));
         }
         console.log(chalk.magenta('\nHappy coding! 🎉\n'));
-
-        // Post-setup module generation hook
-        if (projectOptions.baseCrud) {
-          const inquirer = require('inquirer');
-          const { generateNow } = await inquirer.prompt([{
-            type: 'confirm',
-            name: 'generateNow',
-            message: 'Do you want to generate your first CRUD module now?',
-            default: true
-          }]);
-          
-          if (generateNow) {
-            await generateModule(undefined, targetDir, projectOptions.orm);
-          }
-        }
       }
 
     } catch (error) {

@@ -10,6 +10,12 @@ const chalk = require('chalk');
 const inquirer = require('inquirer');
 const { ORM_OPTIONS, DATABASE_OPTIONS } = require('./constants');
 const { generateJWTSecret, getRunPrefix } = require('./utils');
+// Lazy-loaded to avoid circular deps: moduleGenerator requires constants/utils
+let _generateModule;
+function getGenerateModule() {
+  if (!_generateModule) _generateModule = require('./moduleGenerator').generateModule;
+  return _generateModule;
+}
 
 /**
  * Handles interactive post-setup configuration
@@ -30,7 +36,7 @@ async function handlePostSetup(targetDir, appName, options) {
   const { continueSetup } = await inquirer.prompt([{
     type: 'confirm',
     name: 'continueSetup',
-    message: 'Would you like to complete the setup now? (JWT secrets, database, etc.)',
+    message: 'Would you like to complete the setup now? (JWT secrets, database, CRUD)',
     default: true,
   }]);
 
@@ -38,13 +44,16 @@ async function handlePostSetup(targetDir, appName, options) {
     return false;
   }
 
-  // Configure JWT secrets and database URL
+  // Step 1: Configure JWT secrets and database URL
   await configureEnvironment(targetDir, database);
 
-  // ORM-specific database setup
+  // Step 2: ORM-specific database setup (Schema/Migration → Seed)
   await setupDatabase(targetDir, orm, packageManager);
 
-  // Optionally start dev server
+  // Step 3: CRUD module generation (always offered when setup is accepted)
+  await promptCrudGeneration(targetDir, orm);
+
+  // Step 4: Optionally start dev server
   await promptDevServer(targetDir, packageManager);
 
   return true;
@@ -273,6 +282,30 @@ function printCredentials() {
 }
 
 /**
+ * Prompts user to generate their first CRUD module
+ */
+async function promptCrudGeneration(targetDir, orm) {
+  const { generateNow } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'generateNow',
+    message: 'Do you want to generate your first CRUD module now?',
+    default: true,
+  }]);
+
+  if (!generateNow) {
+    console.log(chalk.gray('\n   Skipping CRUD generation. Run `speedrun-cli generate <name>` anytime.\n'));
+    return;
+  }
+
+  try {
+    await getGenerateModule()(undefined, targetDir, orm);
+  } catch (err) {
+    console.warn(chalk.yellow(`\n   ⚠️  CRUD generation failed: ${err.message}`));
+    console.warn(chalk.gray('   Run `speedrun-cli generate <name>` manually inside your project.\n'));
+  }
+}
+
+/**
  * Prompts user to start dev server
  */
 async function promptDevServer(targetDir, packageManager) {
@@ -339,6 +372,10 @@ function printManualInstructions(appName, options) {
     commands.forEach((cmd) => console.log(chalk.gray(`   npm run ${cmd}`)));
   }
   
+  console.log(chalk.cyan('\n   # Generate your first CRUD module:'));
+  console.log(chalk.gray('   speedrun-cli generate <module-name>'));
+  console.log(chalk.gray('   # e.g. speedrun-cli generate orders'));
+
   console.log(chalk.cyan('\n   # Start development server:'));
   console.log(chalk.gray('   npm run start:dev'));
   
