@@ -31,7 +31,7 @@ const {
 } = require(path.join(packageRoot, 'src'));
 
 program
-  .name('create-nestjs-auth')
+  .name('speedrun-cli')
   .version(CLI_VERSION)
   .description('Create a production-ready NestJS authentication system with your choice of ORM and database');
 
