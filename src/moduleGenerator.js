@@ -386,6 +386,45 @@ export class ${pascalName}Module {}
 `;
 }
 
+async function registerInAppModule(targetDir, pascalName, kebabName) {
+  try {
+    const appModulePath = path.join(targetDir, 'src', 'app.module.ts');
+    
+    if (!(await fs.pathExists(appModulePath))) {
+      return false;
+    }
+
+    let content = await fs.readFile(appModulePath, 'utf8');
+
+    const moduleImport = `import { ${pascalName}Module } from './modules/${kebabName}/${kebabName}.module';`;
+    
+    // Skip if already imported
+    if (content.includes(moduleImport) || content.includes(`${pascalName}Module`)) {
+      return true;
+    }
+
+    // 1. Add import statement at top
+    content = `${moduleImport}\n` + content;
+
+    // 2. Inject ${pascalName}Module into imports array
+    const importsArrayRegex = /(imports\s*:\s*\[)([^\]]*)/s;
+    if (importsArrayRegex.test(content)) {
+      content = content.replace(importsArrayRegex, (match, p1, p2) => {
+        const trimmedP2 = p2.trim();
+        const separator = trimmedP2 ? (trimmedP2.endsWith(',') ? '\n    ' : ',\n    ') : '\n    ';
+        return `${p1}${p2}${separator}${pascalName}Module,`;
+      });
+
+      await fs.writeFile(appModulePath, content, 'utf8');
+      console.log(chalk.green(`✨ Automatically registered ${pascalName}Module in src/app.module.ts`));
+      return true;
+    }
+  } catch (error) {
+    console.warn(chalk.yellow(`⚠️ Could not auto-register ${pascalName}Module in app.module.ts: ${error.message}`));
+  }
+  return false;
+}
+
 async function generateModule(providedModuleName, targetDir = process.cwd(), specifiedOrm = null) {
   try {
     const options = await promptForModuleOptions(providedModuleName);
@@ -396,7 +435,7 @@ async function generateModule(providedModuleName, targetDir = process.cwd(), spe
     // Detect ORM
     const orm = specifiedOrm || await detectOrm(targetDir);
 
-    // Ensure we are inside a NestJS project structure
+    // Ensure inside a NestJS project structure
     const srcDir = path.join(targetDir, 'src');
     if (!(await fs.pathExists(srcDir))) {
       console.warn(chalk.yellow('⚠️ Could not find "src" directory. Generating at current directory.'));
@@ -481,7 +520,7 @@ export class ${responseDtoName} {
     const serviceContent = getServiceContent(orm, pascalName, camelName, kebabName, createDtoName, updateDtoName, ops);
     await fs.writeFile(path.join(moduleDir, `${kebabName}.service.ts`), serviceContent);
 
-    // 3. Generate Controller (FIXED: Swagger DTO Name & ExtraModels registration)
+    // 3. Generate Controller
     const controllerContent = `import { Controller${ops.findAll ? ', Query' : ''}${ops.findOne || ops.update || ops.remove ? ', Param, ParseUUIDPipe, HttpStatus' : ''}${ops.create ? ', Post, Body' : ''}${ops.findAll || ops.findOne ? ', Get' : ''}${ops.update ? ', Put' : ''}${ops.remove ? ', Delete' : ''}, Type } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiExtraModels, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { BaseController } from '../../common/base/base.controller';
@@ -557,10 +596,15 @@ ${ops.create ? `
     const moduleContent = getModuleContent(orm, pascalName, kebabName);
     await fs.writeFile(path.join(moduleDir, `${kebabName}.module.ts`), moduleContent);
 
+    // 5. Auto-register in src/app.module.ts
+    const isAutoRegistered = await registerInAppModule(targetDir, pascalName, kebabName);
+
     console.log(chalk.green(`\n✅ Module "${kebabName}" successfully generated in ${path.relative(process.cwd(), moduleDir)}`));
     console.log(chalk.gray(`   Detected ORM: ${orm}`));
-    console.log(chalk.yellow(`\n⚠️ Don't forget to register ${pascalName}Module in src/app.module.ts:`));
-    console.log(chalk.cyan(`
+
+    if (!isAutoRegistered) {
+      console.log(chalk.yellow(`\n⚠️ Please manually register ${pascalName}Module in src/app.module.ts:`));
+      console.log(chalk.cyan(`
 import { ${pascalName}Module } from './modules/${kebabName}/${kebabName}.module';
 
 @Module({
@@ -571,6 +615,7 @@ import { ${pascalName}Module } from './modules/${kebabName}/${kebabName}.module'
 })
 export class AppModule {}
 `));
+    }
 
     return true;
   } catch (error) {
