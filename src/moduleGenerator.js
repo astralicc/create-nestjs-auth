@@ -481,7 +481,7 @@ export class ${responseDtoName} {
     const serviceContent = getServiceContent(orm, pascalName, camelName, kebabName, createDtoName, updateDtoName, ops);
     await fs.writeFile(path.join(moduleDir, `${kebabName}.service.ts`), serviceContent);
 
-    // 3. Generate Controller
+    // 3. Generate Controller (FIXED: Swagger DTO Name & ExtraModels registration)
     const controllerContent = `import { Controller${ops.findAll ? ', Query' : ''}${ops.findOne || ops.update || ops.remove ? ', Param, ParseUUIDPipe, HttpStatus' : ''}${ops.create ? ', Post, Body' : ''}${ops.findAll || ops.findOne ? ', Get' : ''}${ops.update ? ', Put' : ''}${ops.remove ? ', Delete' : ''}, Type } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiExtraModels, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { BaseController } from '../../common/base/base.controller';
