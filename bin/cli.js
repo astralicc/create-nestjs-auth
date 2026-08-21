@@ -65,7 +65,7 @@ program
   .action(async (appName, options) => {
     try {
       console.log(chalk.cyan(`\n😱🤯🤯 speedrun-cli v${CLI_VERSION} 🤧🥶🥶🥶 (real)\n`));
-      console.log(chalk.gray('Production-ready NestJS authentication - Now with ORM & Database choices!\n'));
+      console.log(chalk.gray('Production-ready NestJS authentication - now u can literally speedrun everything atp\n'));
 
       // Check Node.js version
       checkNodeVersion();
