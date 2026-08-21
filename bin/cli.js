@@ -64,7 +64,7 @@ program
   .option('--yes', 'Skip all prompts and use defaults')
   .action(async (appName, options) => {
     try {
-      console.log(chalk.cyan(`\n⚡️ create-nestjs-auth v${CLI_VERSION}\n`));
+      console.log(chalk.cyan(`\n😱🤯🤯 speedrun-cli v${CLI_VERSION} 🤧🥶🥶🥶 (real)\n`));
       console.log(chalk.gray('Production-ready NestJS authentication - Now with ORM & Database choices!\n'));
 
       // Check Node.js version
