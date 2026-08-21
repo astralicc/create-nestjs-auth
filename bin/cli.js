@@ -42,7 +42,7 @@ program
   .description('Generate a new CRUD module')
   .action(async (moduleName) => {
     try {
-      console.log(chalk.cyan(`\n⚡️ create-nestjs-auth v${CLI_VERSION} Module Generator\n`));
+      console.log(chalk.cyan(`\n😱🤯🤯 speedrun-cli v${CLI_VERSION} nest module generator 🤧🥶🥶🥶 (real)\n`));
       await generateModule(moduleName, process.cwd());
     } catch (error) {
       console.error(chalk.red('\n❌ Module generation failed:'));

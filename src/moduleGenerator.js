@@ -497,7 +497,7 @@ type ${pascalName}Entity = any;
 @ApiExtraModels(ApiResponseDto, PaginatedResponseDto, ${responseDtoName})
 @Controller('${kebabName}')
 export class ${pascalName}Controller extends BaseController<${pascalName}Entity, ${createDtoName}, ${updateDtoName}> {
-  constructor(private readonly service: ${pascalName}Service) {
+  constructor(protected readonly service: ${pascalName}Service) {
     super(service);
   }
 
