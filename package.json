@@ -1,6 +1,6 @@
 {
   "name": "speedrun-cli",
-  "version": "2.6.7",
+  "version": "2.6.8",
   "description": "CLI tool to scaffold a production-ready NestJS authentication system with JWT, refresh tokens, and RBAC",
   "keywords": [
     "nestjs",
