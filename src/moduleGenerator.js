@@ -395,26 +395,23 @@ async function registerInAppModule(targetDir, pascalName, kebabName) {
     }
 
     let content = await fs.readFile(appModulePath, 'utf8');
-
     const moduleImport = `import { ${pascalName}Module } from './modules/${kebabName}/${kebabName}.module';`;
     
-    // Skip if already imported
+    // Cegah duplikasi import
     if (content.includes(moduleImport) || content.includes(`${pascalName}Module`)) {
       return true;
     }
 
-    // 1. Add import statement at top
+    // 1. Tambahkan baris import di paling atas file
     content = `${moduleImport}\n` + content;
 
-    // 2. Inject ${pascalName}Module into imports array
-    const importsArrayRegex = /(imports\s*:\s*\[)([^\]]*)/s;
-    if (importsArrayRegex.test(content)) {
-      content = content.replace(importsArrayRegex, (match, p1, p2) => {
-        const trimmedP2 = p2.trim();
-        const separator = trimmedP2 ? (trimmedP2.endsWith(',') ? '\n    ' : ',\n    ') : '\n    ';
-        return `${p1}${p2}${separator}${pascalName}Module,`;
-      });
-
+    // 2. Inject ${pascalName}Module tepat di dalam decorator @Module({ imports: [ ... ] })
+    const importsKeywordIndex = content.indexOf('imports: [');
+    
+    if (importsKeywordIndex !== -1) {
+      const insertPosition = importsKeywordIndex + 'imports: ['.length;
+      content = content.slice(0, insertPosition) + `\n    ${pascalName}Module,` + content.slice(insertPosition);
+      
       await fs.writeFile(appModulePath, content, 'utf8');
       console.log(chalk.green(`✨ Automatically registered ${pascalName}Module in src/app.module.ts`));
       return true;
