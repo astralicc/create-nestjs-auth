@@ -5,6 +5,14 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-08-22
+
+### Added
+- **Module & CRUD Deletion Engine (`src/moduleRemover.js`)** — Introduced full CRUD module deletion capability. Safely prompts for confirmation (`⚠️ Are you sure?`, `🗄️ Remove DB schema?`), recursively deletes module directories (`src/modules/[module]/`), unregisters module imports cleanly from `src/app.module.ts`, and cleans up ORM models in `prisma/schema.prisma` or entity files.
+- **Integrated Deletion in `config` (`c`) and `field` (`f`) Commands** — Added `🗑️ Delete this CRUD Module` option to `speedrun-cli config` and `speedrun-cli field` interactive menus.
+
+---
+
 ## [2.9.2] - 2026-08-22
 
 ### Fixed & Enhanced

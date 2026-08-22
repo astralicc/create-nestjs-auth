@@ -14,6 +14,7 @@ This document provides a comprehensive reference for all commands, interactive p
 7. [Case 6: Multi-ORM Schema Output Matrix](#7-case-6-multi-orm-schema-output-matrix)
 8. [Case 7: Dynamic Module Configuration (`speedrun-cli config`)](#8-case-7-dynamic-module-configuration-speedrun-cli-config-module)
 9. [Case 8: Realistic Seed Data Generation (`speedrun-cli seed`)](#9-case-8-realistic-seed-data-generation-speedrun-cli-seed-module)
+10. [Case 9: Module & CRUD Deletion Workflow (`speedrun-cli config / field`)](#10-case-9-module--crud-deletion-workflow-speedrun-cli-config--field)
 
 ---
 
@@ -757,8 +758,36 @@ export async function seedOrders(prisma: PrismaClient) {
       create: item,
     });
   }
-  console.log('   ✓ Seeded 10 orders records');
-}
 ```
+
+---
+
+## 10. Case 9: Module & CRUD Deletion Workflow (`speedrun-cli config / field`)
+
+You can completely remove a CRUD module, unregister its import from `src/app.module.ts`, and optionally clean up the ORM model definition (`schema.prisma` or entity files) directly from either `speedrun-cli config` or `speedrun-cli field`.
+
+### Interactive Terminal Flow
+```text
+npx speedrun-cli c orders
+
+⚙️  Configuring module: orders
+
+? Select configuration action:
+    🔐 Manage Auth & Roles Guards (POST, PUT, DELETE protection)
+    🛠️  Toggle Active CRUD Operations (Enable/Disable endpoints)
+  ❯ 🗑️  Delete this CRUD Module (Clean Files & Database Schema)
+    ❌ Cancel
+
+? ⚠️  Are you sure you want to completely delete the module 'orders'? Yes
+? 🗄️  Do you also want to remove the database schema / entity / table for 'orders'? Yes
+
+🗑️  Removing module 'orders'...
+   ✓ Deleted module directory: src/modules/orders
+   ✓ Unregistered OrdersModule from src/app.module.ts
+   ✓ Removed model Order from prisma/schema.prisma
+
+✅ Module "orders" successfully removed!
+```
+
 
 

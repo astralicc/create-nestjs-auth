@@ -263,6 +263,7 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
           { name: '💾 Save changes & update files', value: 'save' },
           { name: '⚡ Run database migration / schema sync', value: 'migrate' },
           { name: '🌱 Seed database table', value: 'seed' },
+          { name: '🗑️  Delete entire module (Files & DB Schema)', value: 'delete_module' },
           { name: '❌ Cancel / Exit', value: 'cancel' },
         ],
       }]);
@@ -336,6 +337,13 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
         await runDatabaseMigration(targetDir, orm, pm);
       } else if (action === 'seed') {
         await runDatabaseSeed(targetDir, orm, pm);
+      } else if (action === 'delete_module') {
+        const { removeModule } = require('./moduleRemover');
+        const deleted = await removeModule(kebabName, targetDir);
+        if (deleted) {
+          managing = false;
+          break;
+        }
       } else if (action === 'cancel') {
         console.log(chalk.gray('Exited field manager.'));
         managing = false;

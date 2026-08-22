@@ -12,6 +12,7 @@ const moduleGenerator = require('./moduleGenerator');
 const fieldManager = require('./fieldManager');
 const moduleConfigurator = require('./moduleConfigurator');
 const seedGenerator = require('./seedGenerator');
+const moduleRemover = require('./moduleRemover');
 
 module.exports = {
   ...constants,
@@ -23,4 +24,5 @@ module.exports = {
   ...fieldManager,
   ...moduleConfigurator,
   ...seedGenerator,
+  ...moduleRemover,
 };

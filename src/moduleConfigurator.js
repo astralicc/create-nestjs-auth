@@ -224,6 +224,7 @@ async function configureModule(providedModuleName, targetDir = process.cwd()) {
       choices: [
         { name: '🔐 Manage Auth & Roles Guards (POST, PUT, DELETE protection)', value: 'guards' },
         { name: '🛠️  Toggle Active CRUD Operations (Enable/Disable endpoints)', value: 'operations' },
+        { name: '🗑️  Delete this CRUD Module (Clean Files & Database Schema)', value: 'delete' },
         { name: '❌ Cancel', value: 'cancel' },
       ],
     }]);
@@ -231,6 +232,11 @@ async function configureModule(providedModuleName, targetDir = process.cwd()) {
     if (configChoice === 'cancel') {
       console.log(chalk.gray('Cancelled configuration. No files modified.'));
       return true;
+    }
+
+    if (configChoice === 'delete') {
+      const { removeModule } = require('./moduleRemover');
+      return await removeModule(kebabName, targetDir);
     }
 
     let protectWriteOps = hasGuards;

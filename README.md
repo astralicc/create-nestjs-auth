@@ -54,8 +54,8 @@ npx speedrun-cli create my-app
 | --- | --- | --- |
 | `speedrun-cli create [app-name]` | *(default)* | Scaffolds a new production-ready NestJS Auth project. |
 | `speedrun-cli generate [module]` | `g` | Generates a new CRUD module with PKs, fields, ORM sync, and Auth Guards. |
-| `speedrun-cli field [module]` | `f` | Interactive Field Manager to Add, Edit (sub-menu), or Delete fields on existing modules. |
-| `speedrun-cli config [module]` | `c` | Customize role guards (`@Roles`), auth protection, and active CRUD operations. |
+| `speedrun-cli field [module]` | `f` | Interactive Field Manager (Add, Edit sub-menu, Delete fields, or Delete entire module). |
+| `speedrun-cli config [module]` | `c` | Customize role guards (`@Roles`), auth protection, active CRUD routes, or Delete entire module. |
 | `speedrun-cli seed [module]` | `s` / `sd` | Generates realistic dummy/seed data scripts (Prisma, TypeORM, JSON) for a module. |
 
 ---
