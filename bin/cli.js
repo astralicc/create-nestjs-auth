@@ -30,6 +30,7 @@ const {
   generateModule,
   manageFields,
   configureModule,
+  generateSeed,
 } = require(path.join(packageRoot, 'src'));
 
 program
@@ -78,6 +79,21 @@ program
       await configureModule(moduleName, process.cwd());
     } catch (error) {
       console.error(chalk.red('\n❌ Module configuration failed:'), error);
+    }
+  });
+
+// ==================== SEED GENERATOR COMMAND ====================
+program
+  .command('seed [module-name]')
+  .alias('s')
+  .alias('sd')
+  .description('Generate realistic seed/dummy data for a module')
+  .action(async (moduleName) => {
+    try {
+      console.log(chalk.cyan(`\n😱🤯🤯 speedrun-cli v${CLI_VERSION} seed generator 🤧🥶🥶🥶 (real)\n`));
+      await generateSeed(moduleName, process.cwd());
+    } catch (error) {
+      console.error(chalk.red('\n❌ Seed generation failed:'), error);
     }
   });
 

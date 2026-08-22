@@ -42,6 +42,7 @@ npx speedrun-cli create my-app
 * 🔗 **Relationship Builder:** Add `Many-to-One` or `One-to-Many` relationships to other modules directly from the terminal with automatic foreign key wiring.
 * ✏️ **Sub-Menu Interactive Field Manager (`speedrun-cli field` / `f`):** Modify existing generated modules on the fly. Selectively edit specific field attributes (Name, Type, or Optional status), add new fields, or delete fields with automated DTO and ORM schema re-sync.
 * ⚙️ **Dynamic Module Configurator (`speedrun-cli config` / `c`):** Customize Auth Guards, change role permissions (`@Roles('ADMIN', 'SUPERADMIN')`), and enable/disable active CRUD endpoints on existing controllers without rewriting code.
+* 🌱 **Realistic Seed Generator (`speedrun-cli seed` / `s` / `sd`):** Interactively generate dummy/seed data tailored to module fields (emails, titles, prices, dates, UUIDs) targeting Prisma seed scripts, TypeORM seed scripts, or raw JSON mock files.
 * 🏗️ **Automated Base Architecture:** Ensures `src/common/base` (`BaseController`, `BaseService`, and Swagger helpers) exists to eliminate missing import compilation errors (`TS2307`/`TS4112`).
 * 🔄 **Auto AppModule Registration:** Automatically injects generated modules into `src/app.module.ts`.
 
@@ -55,6 +56,7 @@ npx speedrun-cli create my-app
 | `speedrun-cli generate [module]` | `g` | Generates a new CRUD module with PKs, fields, ORM sync, and Auth Guards. |
 | `speedrun-cli field [module]` | `f` | Interactive Field Manager to Add, Edit (sub-menu), or Delete fields on existing modules. |
 | `speedrun-cli config [module]` | `c` | Customize role guards (`@Roles`), auth protection, and active CRUD operations. |
+| `speedrun-cli seed [module]` | `s` / `sd` | Generates realistic dummy/seed data scripts (Prisma, TypeORM, JSON) for a module. |
 
 ---
 
@@ -87,6 +89,12 @@ npx speedrun-cli f orders
 ```bash
 # Customize Auth Guards, update role permissions, or enable/disable routes
 npx speedrun-cli c orders
+```
+
+### 5. Generate Seed & Dummy Data
+```bash
+# Generate realistic seed data for Prisma, TypeORM, or raw JSON mock files
+npx speedrun-cli s orders
 ```
 
 ---

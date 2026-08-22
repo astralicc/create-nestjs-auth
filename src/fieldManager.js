@@ -336,4 +336,4 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
   }
 }
 
-module.exports = { manageFields };
+module.exports = { manageFields, parseExistingFields };

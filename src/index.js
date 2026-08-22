@@ -11,6 +11,7 @@ const postSetup = require('./postSetup');
 const moduleGenerator = require('./moduleGenerator');
 const fieldManager = require('./fieldManager');
 const moduleConfigurator = require('./moduleConfigurator');
+const seedGenerator = require('./seedGenerator');
 
 module.exports = {
   ...constants,
@@ -21,4 +22,5 @@ module.exports = {
   ...moduleGenerator,
   ...fieldManager,
   ...moduleConfigurator,
+  ...seedGenerator,
 };

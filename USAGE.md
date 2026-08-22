@@ -13,6 +13,7 @@ This document provides a comprehensive reference for all commands, interactive p
 6. [Case 5: Deleting Fields (`speedrun-cli field`)](#6-case-5-deleting-fields-speedrun-cli-field-module)
 7. [Case 6: Multi-ORM Schema Output Matrix](#7-case-6-multi-orm-schema-output-matrix)
 8. [Case 7: Dynamic Module Configuration (`speedrun-cli config`)](#8-case-7-dynamic-module-configuration-speedrun-cli-config-module)
+9. [Case 8: Realistic Seed Data Generation (`speedrun-cli seed`)](#9-case-8-realistic-seed-data-generation-speedrun-cli-seed-module)
 
 ---
 
@@ -24,6 +25,7 @@ This document provides a comprehensive reference for all commands, interactive p
 | `speedrun-cli generate [module-name]` | `g` | Interactively generate a new CRUD module | `npx speedrun-cli g orders` |
 | `speedrun-cli field [module-name]` | `f` | Manage (add, edit, delete) fields of an existing module | `npx speedrun-cli f orders` |
 | `speedrun-cli config [module-name]` | `c` | Customize role guards (`@Roles`), auth protection & active CRUD routes | `npx speedrun-cli c orders` |
+| `speedrun-cli seed [module-name]` | `s` / `sd` | Generate realistic seed/dummy data scripts (Prisma, TypeORM, JSON) | `npx speedrun-cli s orders` |
 
 ---
 
@@ -691,12 +693,72 @@ export class OrdersController extends BaseController<OrdersEntity, CreateOrdersD
   @ApiParam({ name: 'order_id', format: 'uuid' })
   @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(OrdersDto) })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Orders not found' })
-  override async update(
-    @Param('order_id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) order_id: string,
-    @Body() dto: UpdateOrdersDto
-  ): Promise<ApiResponseDto<OrdersEntity>> {
-    return super.update(order_id, dto);
+```
+
+---
+
+## 9. Case 8: Realistic Seed Data Generation (`speedrun-cli seed [module]`)
+
+The `seed` (alias `s` or `sd`) command generates realistic dummy/seed data tailored to your target module's DTOs/ORM fields (emails, titles, prices, dates, UUIDs) and outputs Prisma seed scripts, TypeORM seed scripts, or raw JSON mock files.
+
+### Command
+```bash
+npx speedrun-cli seed orders
+# or alias:
+npx speedrun-cli s orders
+```
+
+---
+
+### Interactive Terminal Flow
+```text
+🌱 Generating seed data for module: orders (Detected ORM: prisma)
+
+? How many seed records do you want to generate? 10
+? Select target output format / seeding strategy:
+  ❯ Prisma Seed Script (prisma/seeds/[module].seed.ts integration)
+    TypeORM / Custom Script (src/database/seeds/[module].seed.ts)
+    Raw JSON Mock File (src/modules/[module]/mock-data.json)
+
+⚡ Generated Prisma seed script at: prisma/seeds/orders.seed.ts
+✨ Integrated seedOrders into prisma/seed.ts
+
+💡 To execute this seed script, run:
+   npm run prisma:seed (or npx prisma db seed)
+```
+
+---
+
+### Generated Prisma Seed Output (`prisma/seeds/orders.seed.ts`)
+```typescript
+import { PrismaClient } from '@prisma/client';
+
+export const orderSeedData = [
+  {
+    "order_id": "123e4567-e89b-12d3-a456-426614174001",
+    "totalAmount": 15.5,
+    "customerNote": "This is a sample customerNote content for item #1.",
+    "status": "ACTIVE"
+  },
+  {
+    "order_id": "123e4567-e89b-12d3-a456-426614174002",
+    "totalAmount": 21,
+    "customerNote": "This is a sample customerNote content for item #2.",
+    "status": "ACTIVE"
   }
+];
+
+export async function seedOrders(prisma: PrismaClient) {
+  console.log('🌱 Seeding orders...');
+  for (const item of orderSeedData) {
+    await (prisma as any).order.upsert({
+      where: { order_id: item.order_id },
+      update: {},
+      create: item,
+    });
+  }
+  console.log('   ✓ Seeded 10 orders records');
 }
 ```
+
 
