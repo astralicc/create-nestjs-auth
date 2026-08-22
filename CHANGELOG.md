@@ -5,6 +5,13 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.1] - 2026-08-22
+
+### Fixed
+- **Fixed TS2307: Cannot find module `../../common/guards/jwt-auth.guard`** — Enhanced `ensureBaseArchitecture(targetDir)` in `src/moduleGenerator.js` to automatically verify and scaffold placeholder guards (`src/common/guards/jwt-auth.guard.ts`, `src/common/guards/roles.guard.ts`) and decorators (`src/common/decorators/roles.decorator.ts`) whenever generating (`speedrun-cli g`) or configuring (`speedrun-cli c`) protected CRUD modules.
+
+---
+
 ## [2.8.0] - 2026-08-22
 
 ### Added

@@ -176,6 +176,9 @@ ${ops.create ? `
  */
 async function configureModule(providedModuleName, targetDir = process.cwd()) {
   try {
+    const { ensureBaseArchitecture } = require('./moduleGenerator');
+    await ensureBaseArchitecture(targetDir);
+
     let moduleName = providedModuleName;
 
     if (!moduleName) {

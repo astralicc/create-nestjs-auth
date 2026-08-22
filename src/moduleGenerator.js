@@ -80,11 +80,13 @@ async function detectOrm(targetDir) {
 }
 
 /**
- * Ensures src/common/base exists with required abstract classes & DTOs
+ * Ensures src/common/base, src/common/guards, and src/common/decorators exist with required abstract classes, DTOs, guards & decorators
  */
 async function ensureBaseArchitecture(targetDir) {
   try {
     const commonBaseDir = path.join(targetDir, 'src', 'common', 'base');
+    const commonGuardsDir = path.join(targetDir, 'src', 'common', 'guards');
+    const commonDecoratorsDir = path.join(targetDir, 'src', 'common', 'decorators');
 
     if (!(await fs.pathExists(commonBaseDir))) {
       const templateBaseDir = path.join(__dirname, '..', 'templates', 'base-crud', 'src', 'common', 'base');
@@ -92,6 +94,54 @@ async function ensureBaseArchitecture(targetDir) {
         await fs.copy(templateBaseDir, commonBaseDir);
         console.log(chalk.green('   ✓ Scaffolded Base CRUD architecture at src/common/base'));
       }
+    }
+
+    // Scaffold Guards if missing
+    await fs.ensureDir(commonGuardsDir);
+    const jwtGuardPath = path.join(commonGuardsDir, 'jwt-auth.guard.ts');
+    const authGuardPath = path.join(commonGuardsDir, 'auth.guard.ts');
+    const rolesGuardPath = path.join(commonGuardsDir, 'roles.guard.ts');
+
+    if (!(await fs.pathExists(jwtGuardPath)) && !(await fs.pathExists(authGuardPath))) {
+      const jwtGuardContent = `import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    return true;
+  }
+}
+`;
+      await fs.writeFile(jwtGuardPath, jwtGuardContent, 'utf8');
+      console.log(chalk.green('   ✓ Scaffolded JwtAuthGuard at src/common/guards/jwt-auth.guard.ts'));
+    }
+
+    if (!(await fs.pathExists(rolesGuardPath))) {
+      const rolesGuardContent = `import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    return true;
+  }
+}
+`;
+      await fs.writeFile(rolesGuardPath, rolesGuardContent, 'utf8');
+      console.log(chalk.green('   ✓ Scaffolded RolesGuard at src/common/guards/roles.guard.ts'));
+    }
+
+    // Scaffold Decorators if missing
+    await fs.ensureDir(commonDecoratorsDir);
+    const rolesDecoratorPath = path.join(commonDecoratorsDir, 'roles.decorator.ts');
+
+    if (!(await fs.pathExists(rolesDecoratorPath))) {
+      const rolesDecoratorContent = `import { SetMetadata } from '@nestjs/common';
+
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+`;
+      await fs.writeFile(rolesDecoratorPath, rolesDecoratorContent, 'utf8');
+      console.log(chalk.green('   ✓ Scaffolded Roles decorator at src/common/decorators/roles.decorator.ts'));
     }
   } catch (error) {
     console.warn(chalk.yellow(`   ⚠️ Could not scaffold Base CRUD architecture: ${error.message}`));
