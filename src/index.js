@@ -3,11 +3,20 @@
  * @module src
  */
 
+const constants = require('./constants');
+const utils = require('./utils');
+const prompts = require('./prompts');
+const generator = require('./generator');
+const postSetup = require('./postSetup');
+const moduleGenerator = require('./moduleGenerator');
+const fieldManager = require('./fieldManager');
+
 module.exports = {
-  ...require('./constants'),
-  ...require('./utils'),
-  ...require('./prompts'),
-  ...require('./generator'),
-  ...require('./postSetup'),
-  ...require('./moduleGenerator'),
+  ...constants,
+  ...utils,
+  ...prompts,
+  ...generator,
+  ...postSetup,
+  ...moduleGenerator,
+  ...fieldManager,
 };

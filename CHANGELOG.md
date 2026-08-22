@@ -5,6 +5,28 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.3] - 2026-08-22
+
+### Fixed
+- **Runtime Error `TypeError: manageFields is not a function` Fixed** — Exported `fieldManager` in `src/index.js` entry point so `manageFields` is properly destructured in `bin/cli.js` when executing `speedrun-cli field [module]`.
+- **Module Field Regeneration** — Exported `regenerateModuleComponents` in `src/moduleGenerator.js` to enable automatic DTO and ORM schema updates when field definitions are edited via `speedrun-cli field`.
+
+---
+
+## [2.8.2] - 2026-08-22
+
+### Added
+- **Optional `status` Field Prompt** — Added interactive prompt `Include default 'status' field (e.g. ACTIVE)? (Y/n)` during module generation. Users can now choose whether to include or omit the `status` column from ORM schemas (Prisma, TypeORM, Mongoose, Drizzle), DTOs, and seed files.
+
+---
+
+## [2.8.1] - 2026-08-22
+
+### Fixed
+- **Automated Migration Flow for CRUD Modules & JWT Setup** — Reordered post-setup steps in `handlePostSetup` so CRUD module generation occurs *before* database migrations/seeding. Any generated CRUD modules and schema updates are now automatically included when running `prisma migrate dev` / `schema:sync` / `db:push` and seeding during CLI setup.
+
+---
+
 ## [2.8.0] - 2026-08-22
 
 ### Added

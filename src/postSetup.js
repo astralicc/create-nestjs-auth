@@ -48,13 +48,13 @@ async function handlePostSetup(targetDir, appName, options) {
   // Step 1: Configure JWT secrets and database URL
   await configureEnvironment(targetDir, database);
 
-  // Step 2: ORM-specific database setup (Schema/Migration → Seed)
-  await setupDatabase(targetDir, orm, packageManager);
-
-  // Step 3: CRUD module generation
+  // Step 2: CRUD module generation (updates ORM schema before running migrations)
   if (generateFirstCrud !== false) {
     await promptCrudGeneration(targetDir, orm, firstModuleName);
   }
+
+  // Step 3: ORM-specific database setup (Generate Client → Migration → Seed)
+  await setupDatabase(targetDir, orm, packageManager);
 
   // Step 4: Display Post-Setup Summary Log with Next Steps
   printNextStepsSummary(orm);

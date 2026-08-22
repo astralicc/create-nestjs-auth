@@ -444,7 +444,15 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
     }
   }
 
-  // 4. Role & Auth Guard Protection Prompt
+  // 4. Status Field Prompt
+  const { includeStatus } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'includeStatus',
+    message: "Include default 'status' field (e.g. ACTIVE)?",
+    default: true,
+  }]);
+
+  // 5. Role & Auth Guard Protection Prompt
   const { protectWriteOps } = await inquirer.prompt([{
     type: 'confirm',
     name: 'protectWriteOps',
@@ -473,6 +481,7 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
     primaryKey,
     fields,
     relations,
+    includeStatus,
     protectWriteOps,
     roles: selectedRoles,
   };
@@ -495,7 +504,7 @@ function getFieldExampleValue(field, pascalName) {
 /**
  * Dynamic ORM Schema Synchronization: Prisma
  */
-async function syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, fields, relations) {
+async function syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, fields, relations, includeStatus = true) {
   try {
     const schemaPath = path.join(targetDir, 'prisma', 'schema.prisma');
     if (!(await fs.pathExists(schemaPath))) return;
@@ -524,12 +533,13 @@ async function syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey
       return `  ${targetCamel}  ${targetPascal}? @relation(fields: [${r.fkField}], references: [id])\n  ${r.fkField}  String?`;
     });
 
+    const statusLine = includeStatus ? '  status    String   @default("ACTIVE")\n' : '';
+
     const modelDefinition = `
 model ${singularPascal} {
   ${primaryKey}  String   @id @default(uuid())
 ${fieldLines.join('\n')}
-${relLines.length > 0 ? relLines.join('\n') + '\n' : ''}  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
+${relLines.length > 0 ? relLines.join('\n') + '\n' : ''}${statusLine}  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
@@ -548,7 +558,7 @@ ${relLines.length > 0 ? relLines.join('\n') + '\n' : ''}  status    String   @de
 /**
  * Dynamic ORM Schema Synchronization: TypeORM
  */
-async function syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations) {
+async function syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations, includeStatus = true) {
   try {
     const entityDir = path.join(moduleDir, 'entities');
     await fs.ensureDir(entityDir);
@@ -582,6 +592,8 @@ async function syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKe
     const hasRelations = relations.length > 0;
     const imports = [`Entity`, `PrimaryGeneratedColumn`, `Column`, `CreateDateColumn`, `UpdateDateColumn`, `DeleteDateColumn`].concat(hasRelations ? [`ManyToOne`, `JoinColumn`] : []);
 
+    const statusLine = includeStatus ? '  @Column({ default: \'ACTIVE\' })\n  status: string;\n\n' : '';
+
     const entityContent = `import { ${imports.join(', ')} } from 'typeorm';
 
 @Entity('${toSnakeCase(kebabName)}')
@@ -591,10 +603,7 @@ export class ${singularPascal} {
 
 ${fieldLines.join('\n\n')}
 
-${relLines.length > 0 ? relLines.join('\n\n') + '\n\n' : ''}  @Column({ default: 'ACTIVE' })
-  status: string;
-
-  @CreateDateColumn()
+${relLines.length > 0 ? relLines.join('\n\n') + '\n\n' : ''}${statusLine}  @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
@@ -615,7 +624,7 @@ ${relLines.length > 0 ? relLines.join('\n\n') + '\n\n' : ''}  @Column({ default:
 /**
  * Dynamic ORM Schema Synchronization: Mongoose
  */
-async function syncMongooseSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations) {
+async function syncMongooseSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations, includeStatus = true) {
   try {
     const schemaDir = path.join(moduleDir, 'schemas');
     await fs.ensureDir(schemaDir);
@@ -647,6 +656,8 @@ async function syncMongooseSchema(moduleDir, singularPascal, kebabName, primaryK
       ? `  @Prop({ default: () => new Types.ObjectId().toString() })\n  ${primaryKey}: string;\n\n`
       : '';
 
+    const statusLine = includeStatus ? '  @Prop({ default: \'ACTIVE\' })\n  status: string;\n\n' : '';
+
     const schemaContent = `import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
 
@@ -656,10 +667,7 @@ export type ${singularPascal}Document = HydratedDocument<${singularPascal}>;
 export class ${singularPascal} {
 ${pkLine}${fieldLines.join('\n\n')}
 
-${relLines.length > 0 ? relLines.join('\n\n') + '\n\n' : ''}  @Prop({ default: 'ACTIVE' })
-  status: string;
-
-  @Prop({ type: Date, default: null })
+${relLines.length > 0 ? relLines.join('\n\n') + '\n\n' : ''}${statusLine}  @Prop({ type: Date, default: null })
   deletedAt?: Date | null;
 }
 
@@ -676,7 +684,7 @@ export const ${singularPascal}Schema = SchemaFactory.createForClass(${singularPa
 /**
  * Dynamic ORM Schema Synchronization: Drizzle
  */
-async function syncDrizzleSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations) {
+async function syncDrizzleSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations, includeStatus = true) {
   try {
     const schemaDir = path.join(moduleDir, 'schema');
     await fs.ensureDir(schemaDir);
@@ -709,13 +717,14 @@ async function syncDrizzleSchema(moduleDir, singularPascal, kebabName, primaryKe
       return `  ${r.fkField}: varchar('${toSnakeCase(r.fkField)}', { length: 36 }),`;
     });
 
+    const statusLine = includeStatus ? "  status: varchar('status', { length: 50 }).default('ACTIVE').notNull(),\n" : '';
+
     const schemaContent = `import { pgTable, varchar, text, integer, numeric, boolean, timestamp, json } from 'drizzle-orm/pg-core';
 
 export const ${toCamelCase(kebabName)}s = pgTable('${toSnakeCase(kebabName)}', {
   ${primaryKey}: varchar('${toSnakeCase(primaryKey)}', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
 ${fieldLines.join('\n')}
-${relLines.length > 0 ? relLines.join('\n') + '\n' : ''}  status: varchar('status', { length: 50 }).default('ACTIVE').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+${relLines.length > 0 ? relLines.join('\n') + '\n' : ''}${statusLine}  createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 });
@@ -734,7 +743,7 @@ export type New${singularPascal} = typeof ${toCamelCase(kebabName)}s.$inferInser
 /**
  * Auto-Generate Starter Seed File Template
  */
-async function generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, primaryKey, fields) {
+async function generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, primaryKey, fields, includeStatus = true) {
   try {
     const singularCamel = toSingularCamel(kebabName);
     const dummyObjFields = fields.map((f) => {
@@ -742,6 +751,8 @@ async function generateSeedFileTemplate(targetDir, orm, singularPascal, kebabNam
       const valStr = typeof ex === 'string' ? `'${ex}'` : JSON.stringify(ex);
       return `      ${f.name}: ${valStr},`;
     }).join('\n');
+
+    const statusProp = includeStatus ? '\n      status: \'ACTIVE\',' : '';
 
     if (orm === 'prisma') {
       const seedsDir = path.join(targetDir, 'prisma', 'seeds');
@@ -754,8 +765,7 @@ export async function seed${singularPascal}(prisma: PrismaClient) {
   console.log('🌱 Seeding ${singularPascal}...');
   await (prisma as any).${singularCamel}.create({
     data: {
-${dummyObjFields}
-      status: 'ACTIVE',
+${dummyObjFields}${statusProp}
     },
   });
 }
@@ -1163,13 +1173,13 @@ async function generateModule(providedModuleName, targetDir = process.cwd(), spe
 
     // 1. Dynamic ORM Schema Synchronization
     if (orm === 'prisma') {
-      await syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, options.fields, options.relations);
+      await syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, options.fields, options.relations, options.includeStatus);
     } else if (orm === 'typeorm') {
-      await syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations);
+      await syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations, options.includeStatus);
     } else if (orm === 'mongoose') {
-      await syncMongooseSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations);
+      await syncMongooseSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations, options.includeStatus);
     } else if (orm === 'drizzle') {
-      await syncDrizzleSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations);
+      await syncDrizzleSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations, options.includeStatus);
     }
 
     // 2. Generate DTOs
@@ -1242,6 +1252,10 @@ export class ${updateDtoName} extends PartialType(${createDtoName}) {}
       return `  ${swaggerDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
     }).join('\n\n');
 
+    const statusDtoField = options.includeStatus !== false
+      ? `  @ApiProperty({ example: 'ACTIVE' })\n  status: string;\n\n`
+      : '';
+
     await fs.writeFile(
       path.join(dtoDir, `${kebabName}.dto.ts`),
       `import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -1252,10 +1266,7 @@ export class ${responseDtoName} {
 
 ${responseFieldsText}
 
-  @ApiProperty({ example: 'ACTIVE' })
-  status: string;
-
-  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
+${statusDtoField}  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
   createdAt: Date;
 
   @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
@@ -1365,7 +1376,7 @@ ${ops.create ? `
     const isAutoRegistered = await registerInAppModule(targetDir, pascalName, kebabName);
 
     // 7. Auto-Generate Starter Seed File Template
-    await generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, primaryKey, options.fields);
+    await generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, primaryKey, options.fields, options.includeStatus);
 
     console.log(chalk.green(`\n✅ Module "${kebabName}" successfully generated in ${path.relative(process.cwd(), moduleDir)}`));
     console.log(chalk.gray(`   Detected ORM: ${orm}`));
@@ -1392,10 +1403,134 @@ export class AppModule {}
   }
 }
 
+/**
+ * Regenerate module DTOs and ORM schemas when fields are updated via fieldManager
+ */
+async function regenerateModuleComponents(moduleName, fields, targetDir = process.cwd()) {
+  const orm = await detectOrm(targetDir);
+  const kebabName = toKebabCase(moduleName);
+  const pascalName = toPascalCase(moduleName);
+  const singularPascal = toSingularPascal(pascalName);
+  const primaryKey = 'id';
+
+  const srcDir = path.join(targetDir, 'src');
+  const moduleDir = (await fs.pathExists(srcDir))
+    ? path.join(srcDir, 'modules', kebabName)
+    : path.join(targetDir, 'modules', kebabName);
+  const dtoDir = path.join(moduleDir, 'dto');
+
+  await fs.ensureDir(moduleDir);
+  await fs.ensureDir(dtoDir);
+
+  // 1. Sync ORM Schema
+  if (orm === 'prisma') {
+    await syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, fields, [], true);
+  } else if (orm === 'typeorm') {
+    await syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, [], true);
+  } else if (orm === 'mongoose') {
+    await syncMongooseSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, [], true);
+  } else if (orm === 'drizzle') {
+    await syncDrizzleSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, [], true);
+  }
+
+  // 2. Regenerate DTOs
+  const createDtoName = `Create${singularPascal}Dto`;
+  const updateDtoName = `Update${singularPascal}Dto`;
+  const responseDtoName = `${pascalName}Dto`;
+
+  const createFieldsText = fields.map((f) => {
+    const details = getFieldDetails(f.type);
+    const ex = getFieldExampleValue(f, pascalName);
+    const exValStr = typeof ex === 'string' ? `'${ex}'` : JSON.stringify(ex);
+
+    const swaggerDecorator = f.isOptional
+      ? `@ApiPropertyOptional({ description: '${f.name} property', example: ${exValStr} })`
+      : `@ApiProperty({ description: '${f.name} property', example: ${exValStr} })`;
+
+    const valDecorators = [...details.valDecorators];
+    if (f.isOptional) {
+      valDecorators.push('@IsOptional()');
+    } else {
+      valDecorators.push('@IsNotEmpty()');
+    }
+
+    return `  ${swaggerDecorator}\n  ${valDecorators.join('\n  ')}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
+  }).join('\n\n');
+
+  const hasDateFields = fields.some((f) => ['DateTime', 'timestamp', 'Date'].includes(f.type));
+
+  const allValDecorators = new Set(['IsOptional', 'IsNotEmpty']);
+  fields.forEach((f) => {
+    const details = getFieldDetails(f.type);
+    details.valDecorators.forEach((dec) => {
+      const name = dec.replace('@', '').replace(/\(.*\)/, '');
+      if (name) allValDecorators.add(name);
+    });
+  });
+
+  await fs.writeFile(
+    path.join(dtoDir, `create-${kebabName}.dto.ts`),
+    `import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ${Array.from(allValDecorators).join(', ')} } from 'class-validator';
+${hasDateFields ? `import { Type } from 'class-transformer';\n` : ''}
+export class ${createDtoName} {
+${createFieldsText}
+}
+`
+  );
+
+  await fs.writeFile(
+    path.join(dtoDir, `update-${kebabName}.dto.ts`),
+    `import { PartialType } from '@nestjs/swagger';
+import { ${createDtoName} } from './create-${kebabName}.dto';
+
+export class ${updateDtoName} extends PartialType(${createDtoName}) {}
+`
+  );
+
+  const responseFieldsText = fields.map((f) => {
+    const details = getFieldDetails(f.type);
+    const ex = getFieldExampleValue(f, pascalName);
+    const exValStr = typeof ex === 'string' ? `'${ex}'` : JSON.stringify(ex);
+
+    const swaggerDecorator = f.isOptional
+      ? `@ApiPropertyOptional({ example: ${exValStr} })`
+      : `@ApiProperty({ example: ${exValStr} })`;
+
+    return `  ${swaggerDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
+  }).join('\n\n');
+
+  await fs.writeFile(
+    path.join(dtoDir, `${kebabName}.dto.ts`),
+    `import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export class ${responseDtoName} {
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000', format: 'uuid' })
+  id: string;
+
+${responseFieldsText}
+
+  @ApiProperty({ example: 'ACTIVE' })
+  status: string;
+
+  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
+  createdAt: Date;
+
+  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
+  updatedAt: Date;
+
+  @ApiPropertyOptional({ nullable: true, example: null })
+  deletedAt?: Date | null;
+}
+`
+  );
+}
+
 module.exports = {
   generateModule,
   promptForModuleOptions,
   detectOrm,
   registerInAppModule,
   ensureBaseArchitecture,
+  regenerateModuleComponents,
 };
