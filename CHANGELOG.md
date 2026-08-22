@@ -5,6 +5,19 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.13] - 2026-08-22
+
+### Fixed
+- **`regenerateModuleComponents` – Primary Key now detected from existing DTO** — Previously hardcoded `primaryKey = 'id'`, which would overwrite custom PKs (`food_id`, `foodId`, etc.) when using `speedrun-cli field`. Now reads the PK from the module's response DTO via `detectModulePrimaryKey()`.
+- **`syncPrismaSchema` – `forceUpdate` flag added** — Calling `speedrun-cli field` → Save no longer silently skips Prisma schema updates when the model already exists. The existing model block is now replaced in-place.
+- **`fieldManager` – `kebabName` now uses `toKebabCase()`** — Multi-word module names like `OrderItems` are correctly normalised to `order-items` instead of `orderitems`.
+- **`fieldManager` – `parseExistingFields` ignores custom PK/FK fields** — Fields ending with `_id` or `Id` are now excluded from the editable field list so custom primary keys and foreign keys are never accidentally modified.
+- **`fieldManager` – `save` action correctly exits loop** — After saving, `managing` is now set to `false` so the prompt loop terminates instead of continuing.
+- **`moduleGenerator` – `require('./utils')` result now assigned** — `detectPackageManager` and `getRunPrefix` from `utils` are now explicitly imported rather than silently discarded.
+- **`moduleGenerator` – `toKebabCase` and `detectModulePrimaryKey` now exported** — Both utilities are exported so `fieldManager` and other consumers can import them directly.
+
+---
+
 ## [2.7.12] - 2026-08-22
 
 ### Added

@@ -7,7 +7,7 @@ const inquirer = require('inquirer');
 const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
-require('./utils');
+const { detectPackageManager, getRunPrefix } = require('./utils');
 
 function toPascalCase(str) {
   return str
@@ -503,15 +503,19 @@ function getFieldExampleValue(field, pascalName) {
 
 /**
  * Dynamic ORM Schema Synchronization: Prisma
+ * @param {boolean} forceUpdate - When true, replace existing model block instead of skipping
  */
-async function syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, fields, relations, includeStatus = true) {
+async function syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, fields, relations, includeStatus = true, forceUpdate = false) {
   try {
     const schemaPath = path.join(targetDir, 'prisma', 'schema.prisma');
     if (!(await fs.pathExists(schemaPath))) return;
 
     let content = await fs.readFile(schemaPath, 'utf8');
 
-    if (new RegExp(`\\bmodel\\s+${singularPascal}\\b`).test(content)) {
+    const modelRegex = new RegExp(`(\\bmodel\\s+${singularPascal}\\s*\\{[^}]*\\})`, 's');
+    const modelExists = modelRegex.test(content);
+
+    if (modelExists && !forceUpdate) {
       return;
     }
 
@@ -547,9 +551,15 @@ ${relLines.length > 0 ? relLines.join('\n') + '\n' : ''}${statusLine}  createdAt
 }
 `;
 
-    content += modelDefinition;
+    if (modelExists && forceUpdate) {
+      content = content.replace(modelRegex, modelDefinition.trim());
+      console.log(chalk.green(`   ✓ Updated existing Prisma model ${singularPascal} in schema.prisma`));
+    } else {
+      content += modelDefinition;
+      console.log(chalk.green(`   ✓ Added Prisma model ${singularPascal} to schema.prisma`));
+    }
+
     await fs.writeFile(schemaPath, content, 'utf8');
-    console.log(chalk.green(`   ✓ Updated prisma/schema.prisma with model ${singularPascal}`));
   } catch (error) {
     console.warn(chalk.yellow(`   ⚠️ Could not sync prisma/schema.prisma: ${error.message}`));
   }
@@ -1404,6 +1414,30 @@ export class AppModule {}
 }
 
 /**
+ * Detect the primary key used by a module by scanning its response DTO file.
+ * Falls back to 'id' if the file is missing or no PK can be found.
+ */
+async function detectModulePrimaryKey(moduleDir, kebabName) {
+  try {
+    const dtoPath = path.join(moduleDir, 'dto', `${kebabName}.dto.ts`);
+    if (!(await fs.pathExists(dtoPath))) return 'id';
+
+    const content = await fs.readFile(dtoPath, 'utf8');
+    // The PK is the first property after 'export class Xxx {'
+    // It is decorated with @ApiProperty and has format: 'uuid'
+    const pkMatch = content.match(/@ApiProperty\([^)]*format:\s*['"](uuid)['"][^)]*\)[\s\S]*?\n\s*(\w+)\s*:/m);
+    if (pkMatch && pkMatch[2]) return pkMatch[2];
+
+    // Fallback: look for *_id or *Id as the first bare property
+    const firstPropMatch = content.match(/^\s*([a-zA-Z][a-zA-Z0-9_]*)\s*:/m);
+    if (firstPropMatch && firstPropMatch[1] !== 'status') return firstPropMatch[1];
+  } catch {
+    // swallow
+  }
+  return 'id';
+}
+
+/**
  * Regenerate module DTOs and ORM schemas when fields are updated via fieldManager
  */
 async function regenerateModuleComponents(moduleName, fields, targetDir = process.cwd()) {
@@ -1411,7 +1445,6 @@ async function regenerateModuleComponents(moduleName, fields, targetDir = proces
   const kebabName = toKebabCase(moduleName);
   const pascalName = toPascalCase(moduleName);
   const singularPascal = toSingularPascal(pascalName);
-  const primaryKey = 'id';
 
   const srcDir = path.join(targetDir, 'src');
   const moduleDir = (await fs.pathExists(srcDir))
@@ -1422,9 +1455,12 @@ async function regenerateModuleComponents(moduleName, fields, targetDir = proces
   await fs.ensureDir(moduleDir);
   await fs.ensureDir(dtoDir);
 
-  // 1. Sync ORM Schema
+  // Detect the existing primary key from the module's response DTO
+  const primaryKey = await detectModulePrimaryKey(moduleDir, kebabName);
+
+  // 1. Sync ORM Schema (forceUpdate=true so existing definitions are replaced)
   if (orm === 'prisma') {
-    await syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, fields, [], true);
+    await syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, fields, [], true, true);
   } else if (orm === 'typeorm') {
     await syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, [], true);
   } else if (orm === 'mongoose') {
@@ -1506,7 +1542,7 @@ export class ${updateDtoName} extends PartialType(${createDtoName}) {}
 
 export class ${responseDtoName} {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000', format: 'uuid' })
-  id: string;
+  ${primaryKey}: string;
 
 ${responseFieldsText}
 
@@ -1530,7 +1566,9 @@ module.exports = {
   generateModule,
   promptForModuleOptions,
   detectOrm,
+  detectModulePrimaryKey,
   getOrmFieldChoices,
+  toKebabCase,
   registerInAppModule,
   ensureBaseArchitecture,
   regenerateModuleComponents,

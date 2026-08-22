@@ -8,7 +8,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
 const { execSync } = require('child_process');
-const { detectOrm, getOrmFieldChoices, regenerateModuleComponents } = require('./moduleGenerator');
+const { detectOrm, getOrmFieldChoices, regenerateModuleComponents, toKebabCase } = require('./moduleGenerator');
 const { detectPackageManager, getRunPrefix } = require('./utils');
 
 // Helper to parse existing fields from DTO file
@@ -23,22 +23,29 @@ async function parseExistingFields(moduleDir, kebabName) {
   const regex = /^\s*([a-zA-Z0-9_]+)(\?)?:\s*([a-zA-Z\[\]<>]+);/gm;
   let match;
 
-  const ignoredFields = ['id', 'status', 'createdAt', 'updatedAt', 'deletedAt'];
+  // System / PK / FK fields to exclude from editing
+  const IGNORED_EXACT = new Set(['id', 'status', 'createdAt', 'updatedAt', 'deletedAt']);
 
   while ((match = regex.exec(content)) !== null) {
     const [, name, optional, tsType] = match;
-    if (!ignoredFields.includes(name)) {
-      let type = 'String';
-      if (tsType === 'number') type = 'Number';
-      if (tsType === 'boolean') type = 'Boolean';
-      if (tsType === 'Date') type = 'Date';
 
-      fields.push({
-        name,
-        type,
-        isOptional: !!optional,
-      });
-    }
+    // Skip system fields, fields ending with _id or Id suffix (FK / custom PK patterns)
+    if (
+      IGNORED_EXACT.has(name) ||
+      /_id$/i.test(name) ||
+      /Id$/.test(name)
+    ) continue;
+
+    let type = 'String';
+    if (tsType === 'number') type = 'Number';
+    if (tsType === 'boolean') type = 'Boolean';
+    if (tsType === 'Date') type = 'Date';
+
+    fields.push({
+      name,
+      type,
+      isOptional: !!optional,
+    });
   }
 
   return fields;
@@ -109,7 +116,7 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
       moduleName = nameAnswer.moduleName.trim();
     }
 
-    const kebabName = moduleName.toLowerCase();
+    const kebabName = toKebabCase(moduleName);
     const moduleDir = path.join(targetDir, 'src', 'modules', kebabName);
 
     if (!(await fs.pathExists(moduleDir))) {
@@ -229,15 +236,16 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
       } else if (action === 'save') {
         await regenerateModuleComponents(moduleName, fields, targetDir);
         console.log(chalk.green(`\n✅ Successfully updated fields for module "${kebabName}"!`));
+        managing = false; // exit loop after successful save
 
-        const { postSaveAction } = await inquirer.prompt([{
+        const { runDbNow } = await inquirer.prompt([{
           type: 'confirm',
-          name: 'postSaveAction',
+          name: 'runDbNow',
           message: 'Run database migration & seed now?',
-          default: true,
+          default: false,
         }]);
 
-        if (postSaveAction) {
+        if (runDbNow) {
           await runDatabaseMigration(targetDir, orm, pm);
           await runDatabaseSeed(targetDir, orm, pm);
         }
