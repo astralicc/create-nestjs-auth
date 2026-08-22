@@ -223,43 +223,11 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
 
   if (await fs.pathExists(moduleDir)) {
     const relPath = path.relative(targetDir, moduleDir);
-    console.log(chalk.yellow(`\n⚠️  Module "${kebabName}" already exists at ${relPath}\n`));
-
-    const { existingAction } = await inquirer.prompt([{
-      type: 'list',
-      name: 'existingAction',
-      message: `What do you want to do with existing module "${kebabName}"?`,
-      choices: [
-        { name: '✏️  Manage/Edit fields (switch to field manager)', value: 'field' },
-        { name: '🔐 Configure Auth Guards & Endpoints (switch to configurator)', value: 'config' },
-        { name: '🌱 Generate Seed / Dummy Data (switch to seed generator)', value: 'seed' },
-        { name: '⚠️  Overwrite and regenerate module from scratch', value: 'overwrite' },
-        { name: '❌ Cancel', value: 'cancel' },
-      ],
-    }]);
-
-    if (existingAction === 'field') {
-      const { manageFields } = require('./fieldManager');
-      await manageFields(kebabName, targetDir);
-      return null;
-    }
-
-    if (existingAction === 'config') {
-      const { configureModule } = require('./moduleConfigurator');
-      await configureModule(kebabName, targetDir);
-      return null;
-    }
-
-    if (existingAction === 'seed') {
-      const { generateSeed } = require('./seedGenerator');
-      await generateSeed(kebabName, targetDir);
-      return null;
-    }
-
-    if (existingAction === 'cancel') {
-      console.log(chalk.gray('Cancelled module generation. Existing module files preserved.\n'));
-      return null;
-    }
+    console.log(chalk.red(`\n❌ Module "${kebabName}" already exists at ${relPath}!`));
+    console.log(chalk.gray(`   💡 Use "speedrun-cli field ${kebabName}" (alias: f) to add or edit fields.`));
+    console.log(chalk.gray(`   💡 Use "speedrun-cli config ${kebabName}" (alias: c) to configure guards & routes.\n`));
+    console.log(chalk.yellow(`Module generation cancelled because "${kebabName}" already exists.\n`));
+    return null;
   }
 
   const pascalName = toPascalCase(moduleName);
@@ -439,11 +407,18 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
           message: 'Enter field name (e.g., totalAmount, title):',
           validate: (input) => {
             if (!input || !input.trim()) return 'Field name is required';
-            if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(input.trim())) {
+            const name = input.trim();
+            if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)) {
               return 'Field name must be a valid identifier (e.g., totalAmount)';
             }
-            if (input.trim() === primaryKey) {
+            if (name === primaryKey) {
               return `Primary key '${primaryKey}' is already defined. Please choose another field name.`;
+            }
+            if (['id', 'status', 'createdAt', 'updatedAt', 'deletedAt'].includes(name)) {
+              return `Field '${name}' is a system field. Please choose another field name.`;
+            }
+            if (fields.some((f) => f.name.toLowerCase() === name.toLowerCase())) {
+              return `Field '${name}' already exists in module '${moduleName}'. Please choose a different name.`;
             }
             return true;
           },

@@ -5,6 +5,14 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.2] - 2026-08-22
+
+### Fixed & Enhanced
+- **Strict Module & Field Exists Validation** — When running `speedrun-cli g [module]` and an existing module is detected (e.g. `orange`), the CLI displays a clear red error message detailing `field` & `config` hints and immediately cancels execution to prevent accidental overwrites.
+- **Duplicate & System Field Validation** — Added prompt validation in both `speedrun-cli g` and `speedrun-cli f` to prevent adding duplicate fields or reserved system fields (`id`, `status`, `createdAt`, `updatedAt`, `deletedAt`, primary key), displaying `❌ Field "[name]" already exists in module "[module]"!`.
+
+---
+
 ## [2.9.1] - 2026-08-22
 
 ### Enhanced

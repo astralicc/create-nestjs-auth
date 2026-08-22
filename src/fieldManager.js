@@ -212,8 +212,18 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
           default: initialValues.name,
           validate: (input) => {
             if (!input || !input.trim()) return 'Field name is required';
-            if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(input.trim())) {
+            const name = input.trim();
+            if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)) {
               return 'Field name must be a valid identifier';
+            }
+            if (initialValues.name && initialValues.name.toLowerCase() === name.toLowerCase()) {
+              return true;
+            }
+            if (['id', 'status', 'createdAt', 'updatedAt', 'deletedAt'].includes(name)) {
+              return `Field '${name}' is a system field. Please choose another field name.`;
+            }
+            if (fields.some((f) => f.name.toLowerCase() === name.toLowerCase())) {
+              return `Field '${name}' already exists in module '${kebabName}'. Please choose a different name.`;
             }
             return true;
           },
