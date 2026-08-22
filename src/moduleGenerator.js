@@ -1530,6 +1530,7 @@ module.exports = {
   generateModule,
   promptForModuleOptions,
   detectOrm,
+  getOrmFieldChoices,
   registerInAppModule,
   ensureBaseArchitecture,
   regenerateModuleComponents,

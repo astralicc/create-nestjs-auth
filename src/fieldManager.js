@@ -7,8 +7,9 @@ const inquirer = require('inquirer');
 const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
+const { detectOrm, getOrmFieldChoices, regenerateModuleComponents } = require('./moduleGenerator');
 
-// Helper untuk membaca field dari file DTO response yang sudah ada
+// Helper to parse existing fields from DTO file
 async function parseExistingFields(moduleDir, kebabName) {
   const dtoPath = path.join(moduleDir, 'dto', `${kebabName}.dto.ts`);
   if (!(await fs.pathExists(dtoPath))) return [];
@@ -16,8 +17,8 @@ async function parseExistingFields(moduleDir, kebabName) {
   const content = await fs.readFile(dtoPath, 'utf8');
   const fields = [];
 
-  // RegEx untuk mengekstrak property DTO NestJS (namaField?: type)
-  const regex = /^\s*([a-zA-Z0-9_]+)(\?)?:\s*([a-zA-Z]+);/gm;
+  // RegEx to extract NestJS DTO property (fieldName?: type)
+  const regex = /^\s*([a-zA-Z0-9_]+)(\?)?:\s*([a-zA-Z\[\]<>]+);/gm;
   let match;
 
   const ignoredFields = ['id', 'status', 'createdAt', 'updatedAt', 'deletedAt'];
@@ -46,6 +47,9 @@ async function parseExistingFields(moduleDir, kebabName) {
  */
 async function manageFields(providedModuleName, targetDir = process.cwd()) {
   try {
+    const orm = await detectOrm(targetDir);
+    const ormTypeChoices = getOrmFieldChoices(orm);
+
     let moduleName = providedModuleName;
 
     if (!moduleName) {
@@ -68,7 +72,7 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
 
     // Load existing fields
     let fields = await parseExistingFields(moduleDir, kebabName);
-    console.log(chalk.cyan(`\n📦 Managing fields for module: ${chalk.bold(kebabName)}`));
+    console.log(chalk.cyan(`\n📦 Managing fields for module: ${chalk.bold(kebabName)} (Detected ORM: ${orm})`));
 
     let managing = true;
 
@@ -91,8 +95,8 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
           type: 'list',
           name: 'fieldType',
           message: (answers) => `Select field type for '${answers.fieldName}':`,
-          choices: ['String', 'Number', 'Boolean', 'Date'],
-          default: initialValues.type || 'String',
+          choices: ormTypeChoices,
+          default: initialValues.type && ormTypeChoices.includes(initialValues.type) ? initialValues.type : ormTypeChoices[0],
         },
         {
           type: 'confirm',
@@ -175,8 +179,6 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
         console.log(chalk.red(`🗑️ Field '${deletedName}' removed.`));
       } else if (action === 'save') {
         managing = false;
-        // Panggil fungsi regenerasi DTO & Sync ORM dari moduleGenerator
-        const { regenerateModuleComponents } = require('./moduleGenerator');
         await regenerateModuleComponents(moduleName, fields, targetDir);
         console.log(chalk.green(`\n✅ Successfully updated fields for module "${kebabName}"!`));
       } else if (action === 'cancel') {
