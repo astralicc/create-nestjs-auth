@@ -7,7 +7,9 @@ const inquirer = require('inquirer');
 const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
+const { execSync } = require('child_process');
 const { detectOrm, getOrmFieldChoices, regenerateModuleComponents } = require('./moduleGenerator');
+const { detectPackageManager, getRunPrefix } = require('./utils');
 
 // Helper to parse existing fields from DTO file
 async function parseExistingFields(moduleDir, kebabName) {
@@ -43,12 +45,57 @@ async function parseExistingFields(moduleDir, kebabName) {
 }
 
 /**
+ * Executes ORM-specific database migration / schema sync
+ */
+async function runDatabaseMigration(targetDir, orm, packageManager) {
+  const pmPrefix = getRunPrefix(packageManager);
+  console.log(chalk.yellow(`\n⚡ Running database migration for ORM: ${chalk.bold(orm)}...\n`));
+
+  try {
+    if (orm === 'prisma') {
+      execSync('npx prisma db push', { cwd: targetDir, stdio: 'inherit' });
+    } else if (orm === 'typeorm') {
+      execSync(`${pmPrefix} schema:sync`, { cwd: targetDir, stdio: 'inherit' });
+    } else if (orm === 'drizzle') {
+      execSync(`${pmPrefix} db:push`, { cwd: targetDir, stdio: 'inherit' });
+    } else if (orm === 'mongoose') {
+      console.log(chalk.green('   ✓ Mongoose schemas update dynamically on application startup.'));
+    }
+    console.log(chalk.green('\n   ✓ Database migration complete!\n'));
+  } catch (error) {
+    console.error(chalk.red(`\n   ✗ Database migration failed: ${error.message}\n`));
+  }
+}
+
+/**
+ * Executes ORM-specific database seed
+ */
+async function runDatabaseSeed(targetDir, orm, packageManager) {
+  const pmPrefix = getRunPrefix(packageManager);
+  console.log(chalk.yellow(`\n🌱 Seeding database for ORM: ${chalk.bold(orm)}...\n`));
+
+  try {
+    if (orm === 'prisma') {
+      execSync(`${pmPrefix} prisma:seed`, { cwd: targetDir, stdio: 'inherit' });
+    } else if (orm === 'typeorm') {
+      execSync(`${pmPrefix} seed`, { cwd: targetDir, stdio: 'inherit' });
+    } else if (orm === 'mongoose' || orm === 'drizzle') {
+      execSync(`${pmPrefix} db:seed`, { cwd: targetDir, stdio: 'inherit' });
+    }
+    console.log(chalk.green('\n   ✓ Database seed complete!\n'));
+  } catch (error) {
+    console.error(chalk.red(`\n   ✗ Database seed failed: ${error.message}\n`));
+  }
+}
+
+/**
  * Main Interactive Field Manager Entry Point
  */
 async function manageFields(providedModuleName, targetDir = process.cwd()) {
   try {
     const orm = await detectOrm(targetDir);
     const ormTypeChoices = getOrmFieldChoices(orm);
+    const pm = detectPackageManager();
 
     let moduleName = providedModuleName;
 
@@ -123,8 +170,10 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
           { name: '➕ Add new field', value: 'add' },
           { name: '✏️  Edit an existing field', value: 'edit' },
           { name: '🗑️  Delete a field', value: 'delete' },
-          { name: '💾 Save changes and update files', value: 'save' },
-          { name: '❌ Cancel', value: 'cancel' },
+          { name: '💾 Save changes & update files', value: 'save' },
+          { name: '⚡ Run database migration / schema sync', value: 'migrate' },
+          { name: '🌱 Seed database table', value: 'seed' },
+          { name: '❌ Cancel / Exit', value: 'cancel' },
         ],
       }]);
 
@@ -178,11 +227,26 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
         fields.splice(fieldToDeleteIndex, 1);
         console.log(chalk.red(`🗑️ Field '${deletedName}' removed.`));
       } else if (action === 'save') {
-        managing = false;
         await regenerateModuleComponents(moduleName, fields, targetDir);
         console.log(chalk.green(`\n✅ Successfully updated fields for module "${kebabName}"!`));
+
+        const { postSaveAction } = await inquirer.prompt([{
+          type: 'confirm',
+          name: 'postSaveAction',
+          message: 'Run database migration & seed now?',
+          default: true,
+        }]);
+
+        if (postSaveAction) {
+          await runDatabaseMigration(targetDir, orm, pm);
+          await runDatabaseSeed(targetDir, orm, pm);
+        }
+      } else if (action === 'migrate') {
+        await runDatabaseMigration(targetDir, orm, pm);
+      } else if (action === 'seed') {
+        await runDatabaseSeed(targetDir, orm, pm);
       } else if (action === 'cancel') {
-        console.log(chalk.gray('Cancelled field management. No files were modified.'));
+        console.log(chalk.gray('Exited field manager.'));
         managing = false;
       }
     }

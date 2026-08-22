@@ -5,6 +5,13 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.12] - 2026-08-22
+
+### Added
+- **Database Migration & Seed Actions in Field Manager (`speedrun-cli field`)** — Added interactive prompt options `⚡ Run database migration / schema sync` and `🌱 Seed database table` directly to the `? What do you want to do?` menu in `speedrun-cli field` / `speedrun-cli f`. Also offers an optional prompt to immediately run migrations and seeds right after saving updated fields.
+
+---
+
 ## [2.7.11] - 2026-08-22
 
 ### Fixed
