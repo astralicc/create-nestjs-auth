@@ -2,6 +2,9 @@
 
 # @astralicc/create-nestjs-auth-swagger
 
+> **📖 Looking for full command guides, inputs, and code outputs?**  
+> Check out the complete [**USAGE.md (Command & Interactive Flow Guide)**](./USAGE.md).
+
 ### The Zero-Config Way to Build Secure Authentication & CRUD APIs
 
 **Stop wasting 40 hours building JWT auth & CRUD modules from scratch.**  
