@@ -5,6 +5,25 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-08-22
+
+### Added
+- **Auto-Scaffold Missing Base Architecture (`ensureBaseArchitecture`)** — When generating modules via `speedrun-cli g [module]`, `src/common/base` is automatically scaffolded if missing from target project, resolving TS2307 & TS4112 compilation errors.
+- **Custom Primary Key Selection** — Prompt to choose primary key format (`id`, `<singular_snake>_id`, `<singular_camel>Id`, or `Custom...`), applied dynamically across ORM schemas, DTOs, response decorators, and `@Param()` controller annotations.
+- **ORM-Native Field Types** — Customized field type choices in the interactive builder according to detected ORM:
+  - **Prisma:** `[String, Int, Float, Decimal, Boolean, DateTime, Json]`
+  - **TypeORM:** `[varchar, text, int, float, decimal, boolean, timestamp, json]`
+  - **Mongoose:** `[String, Number, Boolean, Date, Array, Object]`
+  - **Drizzle:** `[varchar, text, integer, numeric, boolean, timestamp, json]`
+- **Specific Field Editing Sub-menu** — Interactive sub-menu allows modifying specific field properties (Field Name, Field Type, Optional Status, or All) instead of forcing full re-entry.
+- **Advanced Relationship Builder** — Interactively add relations (`Many-to-One`, `One-to-Many`) pointing to target modules and foreign keys, automatically injecting attributes into Prisma, TypeORM, Mongoose, and Drizzle schemas.
+- **Auth & Roles Guard Protection Prompt** — Optional step to protect write operations (`POST`, `PUT`, `DELETE`) with `@UseGuards()` and role-based decorators (`ADMIN`, `USER`, `MANAGER`).
+
+### Changed
+- **Standardized Import Statements** — Controller & Service templates now fetch `BaseController`, `BaseService`, `IBaseRepository`, `ApiResponseDto`, `ApiResponseSchema`, `PaginatedResponseDto`, `PaginatedResponseSchema`, `PaginationQueryDto` cleanly from the single barrel export `../../common/base`.
+
+---
+
 ## [2.7.1] - 2026-08-22
 
 ### Fixed

@@ -87,77 +87,72 @@ async function ensureBaseArchitecture(targetDir) {
     const commonBaseDir = path.join(targetDir, 'src', 'common', 'base');
 
     if (!(await fs.pathExists(commonBaseDir))) {
-      await fs.ensureDir(commonBaseDir);
-
-      // 1. base.controller.ts
-      await fs.writeFile(
-        path.join(commonBaseDir, 'base.controller.ts'),
-        `import { Type } from '@nestjs/common';
-
-export abstract class BaseController<T, CreateDto, UpdateDto> {
-  constructor(protected readonly service: any) {}
-  protected abstract getDtoClass(): Type<T>;
-  async create(dto: CreateDto): Promise<any> { return this.service.create(dto); }
-  async findAll(query: any): Promise<any> { return this.service.findAll(query); }
-  async findOne(id: string): Promise<any> { return this.service.findOne(id); }
-  async update(id: string, dto: UpdateDto): Promise<any> { return this.service.update(id, dto); }
-  async remove(id: string): Promise<any> { return this.service.remove(id); }
-}
-`
-      );
-
-      // 2. base.service.ts
-      await fs.writeFile(
-        path.join(commonBaseDir, 'base.service.ts'),
-        `import { Injectable } from '@nestjs/common';
-
-export interface PaginationQueryDto { page?: number; limit?: number; }
-export interface IBaseRepository<T, CreateDto, UpdateDto> {
-  create(dto: CreateDto): Promise<T>;
-  findAll(pagination: PaginationQueryDto): Promise<{ data: T[]; total: number }>;
-  findOne(id: string): Promise<T | null>;
-  update(id: string, dto: UpdateDto): Promise<T>;
-  remove(id: string): Promise<T>;
-}
-
-@Injectable()
-export abstract class BaseService<T, CreateDto, UpdateDto> {
-  protected abstract getRepository(): IBaseRepository<T, CreateDto, UpdateDto>;
-  async create(dto: CreateDto): Promise<T> { return this.getRepository().create(dto); }
-  async findAll(pagination: PaginationQueryDto): Promise<{ data: T[]; total: number }> { return this.getRepository().findAll(pagination); }
-  async findOne(id: string): Promise<T | null> { return this.getRepository().findOne(id); }
-  async update(id: string, dto: UpdateDto): Promise<T> { return this.getRepository().update(id, dto); }
-  async remove(id: string): Promise<T> { return this.getRepository().remove(id); }
-}
-`
-      );
-
-      // 3. index.ts (Re-exports & DTO helpers)
-      await fs.writeFile(
-        path.join(commonBaseDir, 'index.ts'),
-        `export * from './base.controller';
-export * from './base.service';
-
-export class ApiResponseDto<T> { statusCode: number; message: string; data: T; }
-export class PaginatedResponseDto<T> { statusCode: number; message: string; data: T[]; total: number; page: number; limit: number; }
-export class PaginationQueryDto { page?: number; limit?: number; }
-
-export function ApiResponseSchema(dto: any): any { return {}; }
-export function PaginatedResponseSchema(dto: any): any { return {}; }
-`
-      );
-
-      console.log(chalk.green('  ✓ Auto-generated missing src/common/base architecture'));
+      const templateBaseDir = path.join(__dirname, '..', 'templates', 'base-crud', 'src', 'common', 'base');
+      if (await fs.pathExists(templateBaseDir)) {
+        await fs.copy(templateBaseDir, commonBaseDir);
+        console.log(chalk.green('   ✓ Scaffolded Base CRUD architecture at src/common/base'));
+      }
     }
   } catch (error) {
-    console.warn(chalk.yellow(`  ⚠️ Could not verify/create base architecture: ${error.message}`));
+    console.warn(chalk.yellow(`   ⚠️ Could not scaffold Base CRUD architecture: ${error.message}`));
   }
 }
 
 /**
- * Interactive prompt for module options (Name, CRUD Mode, Fields)
+ * Returns field type choices based on ORM
  */
-async function promptForModuleOptions(providedModuleName) {
+function getOrmFieldChoices(orm) {
+  switch (orm) {
+    case 'typeorm':
+      return ['varchar', 'text', 'int', 'float', 'decimal', 'boolean', 'timestamp', 'json'];
+    case 'mongoose':
+      return ['String', 'Number', 'Boolean', 'Date', 'Array', 'Object'];
+    case 'drizzle':
+      return ['varchar', 'text', 'integer', 'numeric', 'boolean', 'timestamp', 'json'];
+    case 'prisma':
+    default:
+      return ['String', 'Int', 'Float', 'Decimal', 'Boolean', 'DateTime', 'Json'];
+  }
+}
+
+/**
+ * Helper to map field type to TypeScript type, validator decorators, and sample example value
+ */
+function getFieldDetails(fieldType) {
+  const ft = fieldType;
+
+  if (['String', 'varchar', 'text'].includes(ft)) {
+    return { tsType: 'string', valDecorators: ['@IsString()'], ex: 'Sample value' };
+  }
+  if (['Int', 'int', 'integer'].includes(ft)) {
+    return { tsType: 'number', valDecorators: ['@IsInt()'], ex: 10 };
+  }
+  if (['Float', 'Decimal', 'float', 'decimal', 'numeric', 'Number'].includes(ft)) {
+    return { tsType: 'number', valDecorators: ['@IsNumber()'], ex: 99.99 };
+  }
+  if (['Boolean', 'boolean'].includes(ft)) {
+    return { tsType: 'boolean', valDecorators: ['@IsBoolean()'], ex: true };
+  }
+  if (['DateTime', 'timestamp', 'Date'].includes(ft)) {
+    return {
+      tsType: 'Date',
+      valDecorators: ['@IsDate()', '@Type(() => Date)'],
+      ex: '2025-01-01T00:00:00.000Z',
+    };
+  }
+  if (['Json', 'json', 'Object'].includes(ft)) {
+    return { tsType: 'object', valDecorators: ['@IsObject()'], ex: { key: 'value' } };
+  }
+  if (ft === 'Array') {
+    return { tsType: 'string[]', valDecorators: ['@IsArray()'], ex: ['item1', 'item2'] };
+  }
+  return { tsType: 'string', valDecorators: ['@IsString()'], ex: 'Sample value' };
+}
+
+/**
+ * Interactive prompt for module options (Name, CRUD Mode, PK, Fields, Relations, Auth Guards)
+ */
+async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma') {
   let moduleName = providedModuleName;
 
   if (!moduleName) {
@@ -170,6 +165,13 @@ async function promptForModuleOptions(providedModuleName) {
     moduleName = nameAnswer.moduleName.trim();
   }
 
+  const kebabName = toKebabCase(moduleName);
+  const pascalName = toPascalCase(moduleName);
+  const singularPascal = toSingularPascal(pascalName);
+  const singularSnake = toSnakeCase(singularPascal);
+  const singularCamel = toSingularCamel(kebabName);
+
+  // CRUD mode selection
   const { crudMode } = await inquirer.prompt([{
     type: 'list',
     name: 'crudMode',
@@ -182,7 +184,6 @@ async function promptForModuleOptions(providedModuleName) {
   }]);
 
   let selectedOperations = ['create', 'findAll', 'findOne', 'update', 'remove'];
-
   if (crudMode === 'custom') {
     const { customOps } = await inquirer.prompt([{
       type: 'checkbox',
@@ -199,8 +200,36 @@ async function promptForModuleOptions(providedModuleName) {
     selectedOperations = customOps;
   }
 
-  // Interactive Field Builder Loop
-  // Interactive Field Builder Loop
+  // 1. Primary Key Selection
+  const { pkChoice } = await inquirer.prompt([{
+    type: 'list',
+    name: 'pkChoice',
+    message: `Select primary key format for '${moduleName}':`,
+    choices: [
+      { name: 'id (Default UUID)', value: 'id' },
+      { name: `${singularSnake}_id (e.g., ${singularSnake}_id)`, value: `${singularSnake}_id` },
+      { name: `${singularCamel}Id (e.g., ${singularCamel}Id)`, value: `${singularCamel}Id` },
+      { name: 'Custom Primary Key Name...', value: 'custom' },
+    ],
+    default: 'id',
+  }]);
+
+  let primaryKey = pkChoice;
+  if (pkChoice === 'custom') {
+    const { customPk } = await inquirer.prompt([{
+      type: 'input',
+      name: 'customPk',
+      message: 'Enter custom primary key name:',
+      default: 'id',
+      validate: (input) => (input && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input.trim()) ? true : 'Invalid identifier for primary key'),
+    }]);
+    primaryKey = customPk.trim();
+  }
+
+  // 2. Interactive Field Builder Loop
+  const fields = [];
+  const ormTypeChoices = getOrmFieldChoices(detectedOrm);
+
   const { addCustomFields } = await inquirer.prompt([{
     type: 'confirm',
     name: 'addCustomFields',
@@ -208,23 +237,117 @@ async function promptForModuleOptions(providedModuleName) {
     default: true,
   }]);
 
-  const fields = [];
-
   if (addCustomFields) {
-    let building = true;
+    let managingFields = true;
+    while (managingFields) {
+      if (fields.length > 0) {
+        console.log(chalk.cyan(`\n📋 Current fields for '${moduleName}':`));
+        fields.forEach((f, idx) => {
+          console.log(chalk.gray(`   ${idx + 1}. ${f.name}: ${f.type} (${f.isOptional ? 'Optional' : 'Required'})`));
+        });
+        console.log('');
 
-    // Helper untuk input field baru / edit
-    const promptSingleField = async (initialValues = {}) => {
-      return await inquirer.prompt([
+        const { fieldAction } = await inquirer.prompt([{
+          type: 'list',
+          name: 'fieldAction',
+          message: 'Choose an action:',
+          choices: [
+            { name: '➕ Add another field', value: 'add' },
+            { name: '✏️ Edit an existing field', value: 'edit' },
+            { name: '🗑️ Delete a field', value: 'delete' },
+            { name: '✅ Finish defining fields', value: 'finish' },
+          ],
+        }]);
+
+        if (fieldAction === 'finish') {
+          managingFields = false;
+          break;
+        }
+
+        if (fieldAction === 'delete') {
+          const { fieldToDelete } = await inquirer.prompt([{
+            type: 'list',
+            name: 'fieldToDelete',
+            message: 'Select field to delete:',
+            choices: fields.map((f, i) => ({ name: `${f.name} (${f.type})`, value: i })),
+          }]);
+          const removed = fields.splice(fieldToDelete, 1);
+          console.log(chalk.yellow(`   Removed field '${removed[0].name}'`));
+          continue;
+        }
+
+        if (fieldAction === 'edit') {
+          const { fieldToEditIndex } = await inquirer.prompt([{
+            type: 'list',
+            name: 'fieldToEditIndex',
+            message: 'Select field to edit:',
+            choices: fields.map((f, i) => ({ name: `${f.name}: ${f.type} (${f.isOptional ? 'Optional' : 'Required'})`, value: i })),
+          }]);
+
+          const targetField = fields[fieldToEditIndex];
+
+          const { editPropChoice } = await inquirer.prompt([{
+            type: 'list',
+            name: 'editPropChoice',
+            message: `Select property to edit for '${targetField.name}':`,
+            choices: [
+              { name: '1. Change Field Name', value: 'name' },
+              { name: '2. Change Field Type', value: 'type' },
+              { name: '3. Change Optional Status', value: 'optional' },
+              { name: '4. Edit All Properties', value: 'all' },
+            ],
+          }]);
+
+          if (editPropChoice === 'name' || editPropChoice === 'all') {
+            const { newName } = await inquirer.prompt([{
+              type: 'input',
+              name: 'newName',
+              message: 'Enter field name:',
+              default: targetField.name,
+              validate: (input) => (input && /^[a-zA-Z][a-zA-Z0-9_]*$/.test(input.trim()) ? true : 'Field name must be a valid identifier'),
+            }]);
+            targetField.name = newName.trim();
+          }
+
+          if (editPropChoice === 'type' || editPropChoice === 'all') {
+            const { newType } = await inquirer.prompt([{
+              type: 'list',
+              name: 'newType',
+              message: `Select field type for '${targetField.name}':`,
+              choices: ormTypeChoices,
+              default: targetField.type,
+            }]);
+            targetField.type = newType;
+          }
+
+          if (editPropChoice === 'optional' || editPropChoice === 'all') {
+            const { newOpt } = await inquirer.prompt([{
+              type: 'confirm',
+              name: 'newOpt',
+              message: `Is '${targetField.name}' optional?`,
+              default: targetField.isOptional,
+            }]);
+            targetField.isOptional = newOpt;
+          }
+
+          console.log(chalk.green(`   ✓ Updated field '${targetField.name}'`));
+          continue;
+        }
+      }
+
+      // Add field path
+      const fieldAnswers = await inquirer.prompt([
         {
           type: 'input',
           name: 'fieldName',
           message: 'Enter field name (e.g., totalAmount, title):',
-          default: initialValues.name,
           validate: (input) => {
             if (!input || !input.trim()) return 'Field name is required';
             if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(input.trim())) {
               return 'Field name must be a valid identifier (e.g., totalAmount)';
+            }
+            if (input.trim() === primaryKey) {
+              return `Primary key '${primaryKey}' is already defined. Please choose another field name.`;
             }
             return true;
           },
@@ -232,187 +355,180 @@ async function promptForModuleOptions(providedModuleName) {
         {
           type: 'list',
           name: 'fieldType',
-          message: (answers) => `Select field type for '${answers.fieldName}':`,
-          choices: ['String', 'Number', 'Boolean', 'Date'],
-          default: initialValues.type || 'String',
+          message: (ans) => `Select field type for '${ans.fieldName}':`,
+          choices: ormTypeChoices,
+          default: ormTypeChoices[0],
         },
         {
           type: 'confirm',
           name: 'isOptional',
-          message: (answers) => `Is '${answers.fieldName}' optional?`,
-          default: initialValues.isOptional !== undefined ? initialValues.isOptional : false,
+          message: (ans) => `Is '${ans.fieldName}' optional?`,
+          default: false,
         },
       ]);
-    };
 
-    // Tambah field pertama
-    console.log(chalk.cyan('\n--- Add Field 1 ---'));
-    const firstField = await promptSingleField();
-    fields.push({
-      name: firstField.fieldName.trim(),
-      type: firstField.fieldType,
-      isOptional: firstField.isOptional,
-    });
+      fields.push({
+        name: fieldAnswers.fieldName.trim(),
+        type: fieldAnswers.fieldType,
+        isOptional: fieldAnswers.isOptional,
+      });
 
-    // Menu Navigasi (Add, Edit, Delete, Finish)
-    while (building) {
-      console.log(chalk.gray(`\nCurrent Fields (${fields.length}): `) + fields.map(f => chalk.yellow(`${f.name} (${f.type}${f.isOptional ? '?' : ''})`)).join(', '));
-
-      const { action } = await inquirer.prompt([{
-        type: 'list',
-        name: 'action',
-        message: 'What do you want to do next?',
-        choices: [
-          { name: '➕ Add another field', value: 'add' },
-          { name: '✏️  Edit an existing field', value: 'edit' },
-          { name: '🗑️  Delete a field', value: 'delete' },
-          { name: '✅ Finish and generate module', value: 'done' },
-        ],
-      }]);
-
-      if (action === 'add') {
-        console.log(chalk.cyan(`\n--- Add Field ${fields.length + 1} ---`));
-        const newField = await promptSingleField();
-        fields.push({
-          name: newField.fieldName.trim(),
-          type: newField.fieldType,
-          isOptional: newField.isOptional,
-        });
-      } else if (action === 'edit') {
-        if (fields.length === 0) {
-          console.log(chalk.yellow('⚠️ No fields available to edit.'));
-          continue;
-        }
-
-        const { fieldToEditIndex } = await inquirer.prompt([{
-          type: 'list',
-          name: 'fieldToEditIndex',
-          message: 'Select field to edit:',
-          choices: fields.map((f, index) => ({
-            name: `${f.name} (${f.type}${f.isOptional ? '?' : ''})`,
-            value: index,
-          })),
+      if (fields.length === 1) {
+        const { continueLoop } = await inquirer.prompt([{
+          type: 'confirm',
+          name: 'continueLoop',
+          message: 'Do you want to add another field?',
+          default: false,
         }]);
-
-        console.log(chalk.cyan(`\n--- Editing Field '${fields[fieldToEditIndex].name}' ---`));
-        const editedField = await promptSingleField(fields[fieldToEditIndex]);
-        fields[fieldToEditIndex] = {
-          name: editedField.fieldName.trim(),
-          type: editedField.fieldType,
-          isOptional: editedField.isOptional,
-        };
-        console.log(chalk.green(`✓ Field '${fields[fieldToEditIndex].name}' updated successfully.`));
-      } else if (action === 'delete') {
-        if (fields.length === 0) {
-          console.log(chalk.yellow('⚠️ No fields available to delete.'));
-          continue;
+        if (!continueLoop) {
+          managingFields = false;
         }
-
-        const { fieldToDeleteIndex } = await inquirer.prompt([{
-          type: 'list',
-          name: 'fieldToDeleteIndex',
-          message: 'Select field to delete:',
-          choices: fields.map((f, index) => ({
-            name: `${f.name} (${f.type}${f.isOptional ? '?' : ''})`,
-            value: index,
-          })),
-        }]);
-
-        const deletedName = fields[fieldToDeleteIndex].name;
-        fields.splice(fieldToDeleteIndex, 1);
-        console.log(chalk.red(`🗑️ Field '${deletedName}' removed.`));
-      } else if (action === 'done') {
-        building = false;
       }
     }
   }
 
   // Fallback if no custom fields added
   if (fields.length === 0) {
-    fields.push({ name: 'name', type: 'String', isOptional: false });
+    fields.push({ name: 'name', type: ormTypeChoices[0] || 'String', isOptional: false });
   }
+
+  // 3. Relationships Prompt
+  const relations = [];
+  const { addRelation } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'addRelation',
+    message: 'Do you want to add a relation to another module?',
+    default: false,
+  }]);
+
+  if (addRelation) {
+    let addingRel = true;
+    while (addingRel) {
+      const relAnswers = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'relType',
+          message: 'Select relation type:',
+          choices: [
+            { name: 'Many-to-One (e.g. Order belongs to User)', value: 'Many-to-One' },
+            { name: 'One-to-Many', value: 'One-to-Many' },
+          ],
+        },
+        {
+          type: 'input',
+          name: 'targetModule',
+          message: 'Target module name (e.g., users, categories):',
+          validate: (input) => (input && input.trim() ? true : 'Target module name is required'),
+        },
+        {
+          type: 'input',
+          name: 'fkField',
+          message: (ans) => `Foreign key field name (e.g., ${toSingularCamel(ans.targetModule)}Id):`,
+          default: (ans) => `${toSingularCamel(ans.targetModule)}Id`,
+        },
+      ]);
+
+      relations.push({
+        type: relAnswers.relType,
+        targetModule: relAnswers.targetModule.trim(),
+        fkField: relAnswers.fkField.trim(),
+      });
+
+      const { continueRel } = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'continueRel',
+        message: 'Do you want to add another relation?',
+        default: false,
+      }]);
+      addingRel = continueRel;
+    }
+  }
+
+  // 4. Role & Auth Guard Protection Prompt
+  const { protectWriteOps } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'protectWriteOps',
+    message: 'Protect write operations (POST, PUT, DELETE) with Auth/Roles Guard?',
+    default: true,
+  }]);
+
+  let selectedRoles = [];
+  if (protectWriteOps) {
+    const { roles } = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'roles',
+      message: 'Select allowed roles:',
+      choices: [
+        { name: 'ADMIN', value: 'ADMIN', checked: true },
+        { name: 'USER', value: 'USER' },
+        { name: 'MANAGER', value: 'MANAGER' },
+      ],
+    }]);
+    selectedRoles = roles.length > 0 ? roles : ['ADMIN'];
+  }
+
+  return {
+    moduleName,
+    operations: selectedOperations,
+    primaryKey,
+    fields,
+    relations,
+    protectWriteOps,
+    roles: selectedRoles,
+  };
 }
 
 function getFieldExampleValue(field, pascalName) {
+  const details = getFieldDetails(field.type);
   const name = field.name.toLowerCase();
-  if (field.type === 'String') {
+
+  if (details.tsType === 'string') {
     if (name.includes('email')) return 'user@example.com';
     if (name.includes('phone')) return '+1234567890';
     if (name.includes('url')) return 'https://example.com';
     if (name.includes('sku') || name.includes('code')) return 'SKU-1001';
     return `Sample ${field.name}`;
   }
-  if (field.type === 'Number') {
-    if (name.includes('price') || name.includes('amount') || name.includes('total') || name.includes('cost')) {
-      return 99.99;
-    }
-    return 10;
-  }
-  if (field.type === 'Boolean') return true;
-  if (field.type === 'Date') return '2025-01-01T00:00:00.000Z';
-  return 'Example value';
-}
-
-function getTsType(fieldType) {
-  switch (fieldType) {
-    case 'String':
-      return 'string';
-    case 'Number':
-      return 'number';
-    case 'Boolean':
-      return 'boolean';
-    case 'Date':
-      return 'Date';
-    default:
-      return 'string';
-  }
+  return details.ex;
 }
 
 /**
  * Dynamic ORM Schema Synchronization: Prisma
  */
-async function syncPrismaSchema(targetDir, singularPascal, kebabName, fields) {
+async function syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, fields, relations) {
   try {
     const schemaPath = path.join(targetDir, 'prisma', 'schema.prisma');
     if (!(await fs.pathExists(schemaPath))) return;
 
     let content = await fs.readFile(schemaPath, 'utf8');
 
-    // Avoid duplicate model definition
     if (new RegExp(`\\bmodel\\s+${singularPascal}\\b`).test(content)) {
       return;
     }
 
     const fieldLines = fields.map((f) => {
       let pType = 'String';
-      if (f.type === 'Number') {
-        const nameLower = f.name.toLowerCase();
-        if (
-          nameLower.includes('price') ||
-          nameLower.includes('amount') ||
-          nameLower.includes('total') ||
-          nameLower.includes('cost') ||
-          nameLower.includes('fee') ||
-          nameLower.includes('rate') ||
-          nameLower.includes('score')
-        ) {
-          pType = 'Float';
-        } else {
-          pType = 'Int';
-        }
-      } else if (f.type === 'Boolean') {
-        pType = 'Boolean';
-      } else if (f.type === 'Date') {
-        pType = 'DateTime';
-      }
+      if (['Int', 'int', 'integer'].includes(f.type)) pType = 'Int';
+      else if (['Float', 'float'].includes(f.type)) pType = 'Float';
+      else if (['Decimal', 'decimal', 'numeric'].includes(f.type)) pType = 'Decimal';
+      else if (['Boolean', 'boolean'].includes(f.type)) pType = 'Boolean';
+      else if (['DateTime', 'timestamp', 'Date'].includes(f.type)) pType = 'DateTime';
+      else if (['Json', 'json', 'Object'].includes(f.type)) pType = 'Json';
+
       return `  ${f.name}  ${pType}${f.isOptional ? '?' : ''}`;
+    });
+
+    const relLines = relations.map((r) => {
+      const targetPascal = toSingularPascal(toPascalCase(r.targetModule));
+      const targetCamel = toSingularCamel(r.targetModule);
+      return `  ${targetCamel}  ${targetPascal}? @relation(fields: [${r.fkField}], references: [id])\n  ${r.fkField}  String?`;
     });
 
     const modelDefinition = `
 model ${singularPascal} {
-  id        String   @id @default(uuid())
+  ${primaryKey}  String   @id @default(uuid())
 ${fieldLines.join('\n')}
-  status    String   @default("ACTIVE")
+${relLines.length > 0 ? relLines.join('\n') + '\n' : ''}  status    String   @default("ACTIVE")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
@@ -423,49 +539,59 @@ ${fieldLines.join('\n')}
 
     content += modelDefinition;
     await fs.writeFile(schemaPath, content, 'utf8');
-    console.log(chalk.green(`    ✓ Updated prisma/schema.prisma with model ${singularPascal}`));
+    console.log(chalk.green(`   ✓ Updated prisma/schema.prisma with model ${singularPascal}`));
   } catch (error) {
-    console.warn(chalk.yellow(`    ⚠️ Could not sync prisma/schema.prisma: ${error.message}`));
+    console.warn(chalk.yellow(`   ⚠️ Could not sync prisma/schema.prisma: ${error.message}`));
   }
 }
 
 /**
  * Dynamic ORM Schema Synchronization: TypeORM
  */
-async function syncTypeOrmSchema(moduleDir, singularPascal, kebabName, fields) {
+async function syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations) {
   try {
     const entityDir = path.join(moduleDir, 'entities');
     await fs.ensureDir(entityDir);
     const entityPath = path.join(entityDir, `${toSingularKebab(kebabName)}.entity.ts`);
 
     const fieldLines = fields.map((f) => {
+      const details = getFieldDetails(f.type);
       let colDecorator = `@Column({ nullable: ${f.isOptional} })`;
-      let tsType = 'string';
 
-      if (f.type === 'Number') {
+      if (['decimal', 'numeric', 'Decimal'].includes(f.type)) {
         colDecorator = `@Column('decimal', { precision: 10, scale: 2, nullable: ${f.isOptional} })`;
-        tsType = 'number';
-      } else if (f.type === 'Boolean') {
+      } else if (['boolean', 'Boolean'].includes(f.type)) {
         colDecorator = `@Column({ default: false, nullable: ${f.isOptional} })`;
-        tsType = 'boolean';
-      } else if (f.type === 'Date') {
+      } else if (['timestamp', 'DateTime', 'Date'].includes(f.type)) {
         colDecorator = `@Column({ type: 'timestamp', nullable: ${f.isOptional} })`;
-        tsType = 'Date';
+      } else if (['json', 'Json', 'Object'].includes(f.type)) {
+        colDecorator = `@Column({ type: 'json', nullable: ${f.isOptional} })`;
+      } else if (['text'].includes(f.type)) {
+        colDecorator = `@Column({ type: 'text', nullable: ${f.isOptional} })`;
       }
 
-      return `  ${colDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${tsType};`;
+      return `  ${colDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
     });
 
-    const entityContent = `import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
+    const relLines = relations.map((r) => {
+      const targetPascal = toSingularPascal(toPascalCase(r.targetModule));
+      const targetCamel = toSingularCamel(r.targetModule);
+      return `  @ManyToOne(() => ${targetPascal}, { nullable: true })\n  @JoinColumn({ name: '${r.fkField}' })\n  ${targetCamel}?: any;\n\n  @Column({ nullable: true })\n  ${r.fkField}?: string;`;
+    });
+
+    const hasRelations = relations.length > 0;
+    const imports = [`Entity`, `PrimaryGeneratedColumn`, `Column`, `CreateDateColumn`, `UpdateDateColumn`, `DeleteDateColumn`].concat(hasRelations ? [`ManyToOne`, `JoinColumn`] : []);
+
+    const entityContent = `import { ${imports.join(', ')} } from 'typeorm';
 
 @Entity('${toSnakeCase(kebabName)}')
 export class ${singularPascal} {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  ${primaryKey}: string;
 
 ${fieldLines.join('\n\n')}
 
-  @Column({ default: 'ACTIVE' })
+${relLines.length > 0 ? relLines.join('\n\n') + '\n\n' : ''}  @Column({ default: 'ACTIVE' })
   status: string;
 
   @CreateDateColumn()
@@ -480,49 +606,57 @@ ${fieldLines.join('\n\n')}
 `;
 
     await fs.writeFile(entityPath, entityContent, 'utf8');
-    console.log(chalk.green(`    ✓ Generated TypeORM entity at src/modules/${kebabName}/entities/${toSingularKebab(kebabName)}.entity.ts`));
+    console.log(chalk.green(`   ✓ Generated TypeORM entity at src/modules/${kebabName}/entities/${toSingularKebab(kebabName)}.entity.ts`));
   } catch (error) {
-    console.warn(chalk.yellow(`    ⚠️ Could not generate TypeORM entity: ${error.message}`));
+    console.warn(chalk.yellow(`   ⚠️ Could not generate TypeORM entity: ${error.message}`));
   }
 }
 
 /**
  * Dynamic ORM Schema Synchronization: Mongoose
  */
-async function syncMongooseSchema(moduleDir, singularPascal, kebabName, fields) {
+async function syncMongooseSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations) {
   try {
     const schemaDir = path.join(moduleDir, 'schemas');
     await fs.ensureDir(schemaDir);
     const schemaPath = path.join(schemaDir, `${toSingularKebab(kebabName)}.schema.ts`);
 
     const fieldLines = fields.map((f) => {
+      const details = getFieldDetails(f.type);
       let propDecorator = `@Prop({ required: ${!f.isOptional} })`;
-      let tsType = 'string';
 
-      if (f.type === 'Number') {
-        propDecorator = `@Prop({ required: ${!f.isOptional} })`;
-        tsType = 'number';
-      } else if (f.type === 'Boolean') {
+      if (['boolean', 'Boolean'].includes(f.type)) {
         propDecorator = `@Prop({ default: false })`;
-        tsType = 'boolean';
-      } else if (f.type === 'Date') {
+      } else if (['timestamp', 'DateTime', 'Date'].includes(f.type)) {
         propDecorator = `@Prop({ type: Date, required: ${!f.isOptional} })`;
-        tsType = 'Date';
+      } else if (['json', 'Json', 'Object'].includes(f.type)) {
+        propDecorator = `@Prop({ type: Object, required: ${!f.isOptional} })`;
+      } else if (f.type === 'Array') {
+        propDecorator = `@Prop({ type: [String], default: [] })`;
       }
 
-      return `  ${propDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${tsType};`;
+      return `  ${propDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
     });
 
+    const relLines = relations.map((r) => {
+      const targetPascal = toSingularPascal(toPascalCase(r.targetModule));
+      return `  @Prop({ type: SchemaTypes.ObjectId, ref: '${targetPascal}', default: null })\n  ${r.fkField}?: string;`;
+    });
+
+    const pkLine = primaryKey !== 'id'
+      ? `  @Prop({ default: () => new Types.ObjectId().toString() })\n  ${primaryKey}: string;\n\n`
+      : '';
+
     const schemaContent = `import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
 
 export type ${singularPascal}Document = HydratedDocument<${singularPascal}>;
 
 @Schema({ timestamps: true })
 export class ${singularPascal} {
-${fieldLines.join('\n\n')}
+${pkLine}${fieldLines.join('\n\n')}
 
-  @Prop({ default: 'ACTIVE' })
+${relLines.length > 0 ? relLines.join('\n\n') + '\n\n' : ''}  @Prop({ default: 'ACTIVE' })
   status: string;
 
   @Prop({ type: Date, default: null })
@@ -533,16 +667,16 @@ export const ${singularPascal}Schema = SchemaFactory.createForClass(${singularPa
 `;
 
     await fs.writeFile(schemaPath, schemaContent, 'utf8');
-    console.log(chalk.green(`    ✓ Generated Mongoose schema at src/modules/${kebabName}/schemas/${toSingularKebab(kebabName)}.schema.ts`));
+    console.log(chalk.green(`   ✓ Generated Mongoose schema at src/modules/${kebabName}/schemas/${toSingularKebab(kebabName)}.schema.ts`));
   } catch (error) {
-    console.warn(chalk.yellow(`    ⚠️ Could not generate Mongoose schema: ${error.message}`));
+    console.warn(chalk.yellow(`   ⚠️ Could not generate Mongoose schema: ${error.message}`));
   }
 }
 
 /**
  * Dynamic ORM Schema Synchronization: Drizzle
  */
-async function syncDrizzleSchema(moduleDir, singularPascal, kebabName, fields) {
+async function syncDrizzleSchema(moduleDir, singularPascal, kebabName, primaryKey, fields, relations) {
   try {
     const schemaDir = path.join(moduleDir, 'schema');
     await fs.ensureDir(schemaDir);
@@ -550,12 +684,18 @@ async function syncDrizzleSchema(moduleDir, singularPascal, kebabName, fields) {
 
     const fieldLines = fields.map((f) => {
       let colDef = `varchar('${toSnakeCase(f.name)}', { length: 255 })`;
-      if (f.type === 'Number') {
+      if (['int', 'integer', 'Int'].includes(f.type)) {
+        colDef = `integer('${toSnakeCase(f.name)}')`;
+      } else if (['float', 'decimal', 'numeric', 'Float', 'Decimal', 'Number'].includes(f.type)) {
         colDef = `numeric('${toSnakeCase(f.name)}')`;
-      } else if (f.type === 'Boolean') {
+      } else if (['boolean', 'Boolean'].includes(f.type)) {
         colDef = `boolean('${toSnakeCase(f.name)}').default(false)`;
-      } else if (f.type === 'Date') {
+      } else if (['timestamp', 'DateTime', 'Date'].includes(f.type)) {
         colDef = `timestamp('${toSnakeCase(f.name)}')`;
+      } else if (['json', 'Json', 'Object'].includes(f.type)) {
+        colDef = `json('${toSnakeCase(f.name)}')`;
+      } else if (f.type === 'text') {
+        colDef = `text('${toSnakeCase(f.name)}')`;
       }
 
       if (!f.isOptional) {
@@ -565,12 +705,16 @@ async function syncDrizzleSchema(moduleDir, singularPascal, kebabName, fields) {
       return `  ${f.name}: ${colDef},`;
     });
 
-    const schemaContent = `import { pgTable, varchar, numeric, boolean, timestamp } from 'drizzle-orm/pg-core';
+    const relLines = relations.map((r) => {
+      return `  ${r.fkField}: varchar('${toSnakeCase(r.fkField)}', { length: 36 }),`;
+    });
+
+    const schemaContent = `import { pgTable, varchar, text, integer, numeric, boolean, timestamp, json } from 'drizzle-orm/pg-core';
 
 export const ${toCamelCase(kebabName)}s = pgTable('${toSnakeCase(kebabName)}', {
-  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  ${primaryKey}: varchar('${toSnakeCase(primaryKey)}', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
 ${fieldLines.join('\n')}
-  status: varchar('status', { length: 50 }).default('ACTIVE').notNull(),
+${relLines.length > 0 ? relLines.join('\n') + '\n' : ''}  status: varchar('status', { length: 50 }).default('ACTIVE').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
@@ -581,21 +725,21 @@ export type New${singularPascal} = typeof ${toCamelCase(kebabName)}s.$inferInser
 `;
 
     await fs.writeFile(schemaPath, schemaContent, 'utf8');
-    console.log(chalk.green(`    ✓ Generated Drizzle schema at src/modules/${kebabName}/schema/${kebabName}.schema.ts`));
+    console.log(chalk.green(`   ✓ Generated Drizzle schema at src/modules/${kebabName}/schema/${kebabName}.schema.ts`));
   } catch (error) {
-    console.warn(chalk.yellow(`    ⚠️ Could not generate Drizzle schema: ${error.message}`));
+    console.warn(chalk.yellow(`   ⚠️ Could not generate Drizzle schema: ${error.message}`));
   }
 }
 
 /**
  * Auto-Generate Starter Seed File Template
  */
-async function generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, fields) {
+async function generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, primaryKey, fields) {
   try {
     const singularCamel = toSingularCamel(kebabName);
     const dummyObjFields = fields.map((f) => {
       const ex = getFieldExampleValue(f, singularPascal);
-      const valStr = typeof ex === 'string' ? `'${ex}'` : ex;
+      const valStr = typeof ex === 'string' ? `'${ex}'` : JSON.stringify(ex);
       return `      ${f.name}: ${valStr},`;
     }).join('\n');
 
@@ -617,7 +761,7 @@ ${dummyObjFields}
 }
 `;
       await fs.writeFile(seedPath, seedContent, 'utf8');
-      console.log(chalk.green(`    ✓ Generated Prisma seed template at prisma/seeds/${kebabName}.seed.ts`));
+      console.log(chalk.green(`   ✓ Generated Prisma seed template at prisma/seeds/${kebabName}.seed.ts`));
     } else {
       const seedsDir = path.join(targetDir, 'src', 'database', 'seeds');
       await fs.ensureDir(seedsDir);
@@ -641,14 +785,14 @@ ${dummyObjFields}
 }
 `;
       await fs.writeFile(seedPath, seedContent, 'utf8');
-      console.log(chalk.green(`    ✓ Generated seed template at src/database/seeds/${kebabName}.seed.ts`));
+      console.log(chalk.green(`   ✓ Generated seed template at src/database/seeds/${kebabName}.seed.ts`));
     }
   } catch (error) {
-    console.warn(chalk.yellow(`    ⚠️ Could not generate seed template: ${error.message}`));
+    console.warn(chalk.yellow(`   ⚠️ Could not generate seed template: ${error.message}`));
   }
 }
 
-function getServiceContent(orm, pascalName, singularPascal, camelName, kebabName, createDtoName, updateDtoName, ops) {
+function getServiceContent(orm, pascalName, singularPascal, camelName, kebabName, primaryKey, createDtoName, updateDtoName, ops) {
   const singularKebab = toSingularKebab(kebabName);
 
   if (orm === 'typeorm') {
@@ -676,20 +820,20 @@ class TypeOrm${pascalName}Repository implements IBaseRepository<${pascalName}Ent
     return { data, total };
   }` : `async findAll(p: PaginationQueryDto): Promise<{ data: ${pascalName}Entity[]; total: number }> { throw new Error('Not implemented'); }`}
 
-  ${ops.findOne ? `async findOne(id: string): Promise<${pascalName}Entity | null> {
-    return this.repo.findOne({ where: { id, deletedAt: IsNull() } as any });
-  }` : `async findOne(id: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
+  ${ops.findOne ? `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> {
+    return this.repo.findOne({ where: { ${primaryKey}, deletedAt: IsNull() } as any });
+  }` : `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
 
-  ${ops.update ? `async update(id: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
-    await this.repo.update(id, dto as any);
-    return this.repo.findOneOrFail({ where: { id } as any });
-  }` : `async update(id: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
+  ${ops.update ? `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
+    await this.repo.update(${primaryKey}, dto as any);
+    return this.repo.findOneOrFail({ where: { ${primaryKey} } as any });
+  }` : `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 
-  ${ops.remove ? `async remove(id: string): Promise<${pascalName}Entity> {
-    const entity = await this.repo.findOneOrFail({ where: { id } as any });
+  ${ops.remove ? `async remove(${primaryKey}: string): Promise<${pascalName}Entity> {
+    const entity = await this.repo.findOneOrFail({ where: { ${primaryKey} } as any });
     entity.deletedAt = new Date();
     return this.repo.save(entity);
-  }` : `async remove(id: string): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
+  }` : `async remove(${primaryKey}: string): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 }
 
 @Injectable()
@@ -734,17 +878,17 @@ class Mongoose${pascalName}Repository implements IBaseRepository<${pascalName}En
     return { data, total };
   }` : `async findAll(p: PaginationQueryDto): Promise<{ data: ${pascalName}Entity[]; total: number }> { throw new Error('Not implemented'); }`}
 
-  ${ops.findOne ? `async findOne(id: string): Promise<${pascalName}Entity | null> {
-    return this.model.findOne({ _id: id, deletedAt: null }).exec();
-  }` : `async findOne(id: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
+  ${ops.findOne ? `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> {
+    return this.model.findOne({ ${primaryKey === 'id' ? '_id' : primaryKey}: ${primaryKey}, deletedAt: null }).exec();
+  }` : `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
 
-  ${ops.update ? `async update(id: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
-    return this.model.findByIdAndUpdate(id, dto as any, { new: true }).exec() as Promise<${pascalName}Entity>;
-  }` : `async update(id: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
+  ${ops.update ? `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
+    return this.model.findOneAndUpdate({ ${primaryKey === 'id' ? '_id' : primaryKey}: ${primaryKey} }, dto as any, { new: true }).exec() as Promise<${pascalName}Entity>;
+  }` : `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 
-  ${ops.remove ? `async remove(id: string): Promise<${pascalName}Entity> {
-    return this.model.findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true }).exec() as Promise<${pascalName}Entity>;
-  }` : `async remove(id: string): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
+  ${ops.remove ? `async remove(${primaryKey}: string): Promise<${pascalName}Entity> {
+    return this.model.findOneAndUpdate({ ${primaryKey === 'id' ? '_id' : primaryKey}: ${primaryKey} }, { deletedAt: new Date() }, { new: true }).exec() as Promise<${pascalName}Entity>;
+  }` : `async remove(${primaryKey}: string): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 }
 
 @Injectable()
@@ -790,21 +934,21 @@ class Drizzle${pascalName}Repository implements IBaseRepository<${pascalName}Ent
     return { data, total: 0 };
   }` : `async findAll(p: PaginationQueryDto): Promise<{ data: ${pascalName}Entity[]; total: number }> { throw new Error('Not implemented'); }`}
 
-  ${ops.findOne ? `async findOne(id: string): Promise<${pascalName}Entity | null> {
+  ${ops.findOne ? `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> {
     const [result] = await this.db.select().from(${camelName}s)
-      .where(eq(${camelName}s.id, id));
+      .where(eq(${camelName}s.${primaryKey}, ${primaryKey}));
     return result || null;
-  }` : `async findOne(id: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
+  }` : `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
 
-  ${ops.update ? `async update(id: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
-    const [result] = await this.db.update(${camelName}s).set(dto).where(eq(${camelName}s.id, id)).returning();
+  ${ops.update ? `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
+    const [result] = await this.db.update(${camelName}s).set(dto).where(eq(${camelName}s.${primaryKey}, ${primaryKey})).returning();
     return result;
-  }` : `async update(id: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
+  }` : `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 
-  ${ops.remove ? `async remove(id: string): Promise<${pascalName}Entity> {
-    const [result] = await this.db.update(${camelName}s).set({ deletedAt: new Date() }).where(eq(${camelName}s.id, id)).returning();
+  ${ops.remove ? `async remove(${primaryKey}: string): Promise<${pascalName}Entity> {
+    const [result] = await this.db.update(${camelName}s).set({ deletedAt: new Date() }).where(eq(${camelName}s.${primaryKey}, ${primaryKey})).returning();
     return result;
-  }` : `async remove(id: string): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
+  }` : `async remove(${primaryKey}: string): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 }
 
 @Injectable()
@@ -850,17 +994,17 @@ class Prisma${pascalName}Repository implements IBaseRepository<${pascalName}Enti
     return { data, total };
   }` : `async findAll(p: PaginationQueryDto): Promise<{ data: ${pascalName}Entity[]; total: number }> { throw new Error('Not implemented'); }`}
 
-  ${ops.findOne ? `async findOne(id: string): Promise<${pascalName}Entity | null> {
-    return (this.prisma as any).${singularCamel}.findFirst({ where: { id, deletedAt: null } });
-  }` : `async findOne(id: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
+  ${ops.findOne ? `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> {
+    return (this.prisma as any).${singularCamel}.findFirst({ where: { ${primaryKey}, deletedAt: null } });
+  }` : `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
 
-  ${ops.update ? `async update(id: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
-    return (this.prisma as any).${singularCamel}.update({ where: { id }, data: dto });
-  }` : `async update(id: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
+  ${ops.update ? `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
+    return (this.prisma as any).${singularCamel}.update({ where: { ${primaryKey} }, data: dto });
+  }` : `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 
-  ${ops.remove ? `async remove(id: string): Promise<${pascalName}Entity> {
-    return (this.prisma as any).${singularCamel}.update({ where: { id }, data: { deletedAt: new Date() } });
-  }` : `async remove(id: string): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
+  ${ops.remove ? `async remove(${primaryKey}: string): Promise<${pascalName}Entity> {
+    return (this.prisma as any).${singularCamel}.update({ where: { ${primaryKey} }, data: { deletedAt: new Date() } });
+  }` : `async remove(${primaryKey}: string): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 }
 
 @Injectable()
@@ -982,17 +1126,18 @@ async function registerInAppModule(targetDir, pascalName, kebabName) {
  */
 async function generateModule(providedModuleName, targetDir = process.cwd(), specifiedOrm = null) {
   try {
-    // Ensure src/common/base exists before generating any module components
+    // 0. Ensure Base Architecture exists at src/common/base
     await ensureBaseArchitecture(targetDir);
 
-    const options = await promptForModuleOptions(providedModuleName);
+    // Detect ORM first so prompt choices match
+    const orm = specifiedOrm || (await detectOrm(targetDir));
+
+    const options = await promptForModuleOptions(providedModuleName, orm);
     const kebabName = toKebabCase(options.moduleName);
     const pascalName = toPascalCase(options.moduleName);
     const camelName = toCamelCase(options.moduleName);
     const singularPascal = toSingularPascal(pascalName);
-
-    // Detect ORM
-    const orm = specifiedOrm || (await detectOrm(targetDir));
+    const primaryKey = options.primaryKey || 'id';
 
     // Ensure inside a NestJS project structure
     const srcDir = path.join(targetDir, 'src');
@@ -1018,13 +1163,13 @@ async function generateModule(providedModuleName, targetDir = process.cwd(), spe
 
     // 1. Dynamic ORM Schema Synchronization
     if (orm === 'prisma') {
-      await syncPrismaSchema(targetDir, singularPascal, kebabName, options.fields);
+      await syncPrismaSchema(targetDir, singularPascal, kebabName, primaryKey, options.fields, options.relations);
     } else if (orm === 'typeorm') {
-      await syncTypeOrmSchema(moduleDir, singularPascal, kebabName, options.fields);
+      await syncTypeOrmSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations);
     } else if (orm === 'mongoose') {
-      await syncMongooseSchema(moduleDir, singularPascal, kebabName, options.fields);
+      await syncMongooseSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations);
     } else if (orm === 'drizzle') {
-      await syncDrizzleSchema(moduleDir, singularPascal, kebabName, options.fields);
+      await syncDrizzleSchema(moduleDir, singularPascal, kebabName, primaryKey, options.fields, options.relations);
     }
 
     // 2. Generate DTOs
@@ -1033,39 +1178,41 @@ async function generateModule(providedModuleName, targetDir = process.cwd(), spe
     const responseDtoName = `${pascalName}Dto`;
 
     const createFieldsText = options.fields.map((f) => {
-      const tsType = getTsType(f.type);
+      const details = getFieldDetails(f.type);
       const ex = getFieldExampleValue(f, pascalName);
-      const exValStr = typeof ex === 'string' ? `'${ex}'` : ex;
+      const exValStr = typeof ex === 'string' ? `'${ex}'` : JSON.stringify(ex);
 
       const swaggerDecorator = f.isOptional
         ? `@ApiPropertyOptional({ description: '${f.name} property', example: ${exValStr} })`
         : `@ApiProperty({ description: '${f.name} property', example: ${exValStr} })`;
 
-      const valDecorators = [];
-      if (f.type === 'String') valDecorators.push('@IsString()');
-      if (f.type === 'Number') valDecorators.push('@IsNumber()');
-      if (f.type === 'Boolean') valDecorators.push('@IsBoolean()');
-      if (f.type === 'Date') {
-        valDecorators.push('@IsDate()');
-        valDecorators.push('@Type(() => Date)');
-      }
-
+      const valDecorators = [...details.valDecorators];
       if (f.isOptional) {
         valDecorators.push('@IsOptional()');
       } else {
         valDecorators.push('@IsNotEmpty()');
       }
 
-      return `  ${swaggerDecorator}\n  ${valDecorators.join('\n  ')}\n  ${f.name}${f.isOptional ? '?' : ''}: ${tsType};`;
+      return `  ${swaggerDecorator}\n  ${valDecorators.join('\n  ')}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
     }).join('\n\n');
 
-    const hasDateFields = options.fields.some((f) => f.type === 'Date');
+    const hasDateFields = options.fields.some((f) => ['DateTime', 'timestamp', 'Date'].includes(f.type));
+
+    // Validator import gathering
+    const allValDecorators = new Set(['IsOptional', 'IsNotEmpty']);
+    options.fields.forEach((f) => {
+      const details = getFieldDetails(f.type);
+      details.valDecorators.forEach((dec) => {
+        const name = dec.replace('@', '').replace(/\(.*\)/, '');
+        if (name) allValDecorators.add(name);
+      });
+    });
 
     if (ops.create || ops.update) {
       await fs.writeFile(
         path.join(dtoDir, `create-${kebabName}.dto.ts`),
         `import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsBoolean, IsDate, IsNotEmpty, IsOptional } from 'class-validator';
+import { ${Array.from(allValDecorators).join(', ')} } from 'class-validator';
 ${hasDateFields ? `import { Type } from 'class-transformer';\n` : ''}
 export class ${createDtoName} {
 ${createFieldsText}
@@ -1084,15 +1231,15 @@ export class ${updateDtoName} extends PartialType(${createDtoName}) {}
     }
 
     const responseFieldsText = options.fields.map((f) => {
-      const tsType = getTsType(f.type);
+      const details = getFieldDetails(f.type);
       const ex = getFieldExampleValue(f, pascalName);
-      const exValStr = typeof ex === 'string' ? `'${ex}'` : ex;
+      const exValStr = typeof ex === 'string' ? `'${ex}'` : JSON.stringify(ex);
 
       const swaggerDecorator = f.isOptional
         ? `@ApiPropertyOptional({ example: ${exValStr} })`
         : `@ApiProperty({ example: ${exValStr} })`;
 
-      return `  ${swaggerDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${tsType};`;
+      return `  ${swaggerDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
     }).join('\n\n');
 
     await fs.writeFile(
@@ -1101,7 +1248,7 @@ export class ${updateDtoName} extends PartialType(${createDtoName}) {}
 
 export class ${responseDtoName} {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000', format: 'uuid' })
-  id: string;
+  ${primaryKey}: string;
 
 ${responseFieldsText}
 
@@ -1127,14 +1274,20 @@ ${responseFieldsText}
       singularPascal,
       camelName,
       kebabName,
+      primaryKey,
       createDtoName,
       updateDtoName,
       ops
     );
     await fs.writeFile(path.join(moduleDir, `${kebabName}.service.ts`), serviceContent);
 
-    // 4. Generate Controller (Fixed single clean import path from common/base)
-    const controllerContent = `import { Controller${ops.findAll ? ', Query' : ''}${ops.findOne || ops.update || ops.remove ? ', Param, ParseUUIDPipe, HttpStatus' : ''}${ops.create ? ', Post, Body' : ''}${ops.findAll || ops.findOne ? ', Get' : ''}${ops.update ? ', Put' : ''}${ops.remove ? ', Delete' : ''}, Type } from '@nestjs/common';
+    // 4. Generate Controller
+    const guardImports = options.protectWriteOps ? `, UseGuards` : '';
+    const guardDecorator = options.protectWriteOps && options.roles?.length > 0
+      ? `\n  @UseGuards()\n  // Roles: ${options.roles.join(', ')}`
+      : '';
+
+    const controllerContent = `import { Controller${ops.findAll ? ', Query' : ''}${ops.findOne || ops.update || ops.remove ? ', Param, ParseUUIDPipe, HttpStatus' : ''}${ops.create ? ', Post, Body' : ''}${ops.findAll || ops.findOne ? ', Get' : ''}${ops.update ? ', Put' : ''}${ops.remove ? ', Delete' : ''}, Type${guardImports} } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiExtraModels, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { BaseController, ApiResponseDto, ApiResponseSchema, PaginatedResponseDto, PaginatedResponseSchema, PaginationQueryDto } from '../../common/base';
 import { ${pascalName}Service } from './${kebabName}.service';
@@ -1156,7 +1309,7 @@ export class ${pascalName}Controller extends BaseController<${pascalName}Entity,
     return ${responseDtoName} as unknown as Type<${pascalName}Entity>;
   }
 ${ops.create ? `
-  @Post()
+  @Post()${guardDecorator}
   @ApiOperation({ summary: 'Create a new ${kebabName}' })
   @ApiResponse({ status: HttpStatus.CREATED, schema: ApiResponseSchema(${responseDtoName}) })
   override async create(@Body() dto: ${createDtoName}): Promise<ApiResponseDto<${pascalName}Entity>> {
@@ -1170,34 +1323,34 @@ ${ops.create ? `
     return super.findAll(pagination);
   }
 ` : ''}${ops.findOne ? `
-  @Get(':id')
+  @Get(':${primaryKey}')
   @ApiOperation({ summary: 'Get ${kebabName} by ID' })
-  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: '${primaryKey}', format: 'uuid' })
   @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(${responseDtoName}) })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: '${pascalName} not found' })
-  override async findOne(@Param('id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string): Promise<ApiResponseDto<${pascalName}Entity>> {
-    return super.findOne(id);
+  override async findOne(@Param('${primaryKey}', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ${primaryKey}: string): Promise<ApiResponseDto<${pascalName}Entity>> {
+    return super.findOne(${primaryKey});
   }
 ` : ''}${ops.update ? `
-  @Put(':id')
+  @Put(':${primaryKey}')${guardDecorator}
   @ApiOperation({ summary: 'Update ${kebabName} by ID' })
-  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: '${primaryKey}', format: 'uuid' })
   @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(${responseDtoName}) })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: '${pascalName} not found' })
   override async update(
-    @Param('id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string,
+    @Param('${primaryKey}', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ${primaryKey}: string,
     @Body() dto: ${updateDtoName}
   ): Promise<ApiResponseDto<${pascalName}Entity>> {
-    return super.update(id, dto);
+    return super.update(${primaryKey}, dto);
   }
 ` : ''}${ops.remove ? `
-  @Delete(':id')
+  @Delete(':${primaryKey}')${guardDecorator}
   @ApiOperation({ summary: 'Delete ${kebabName} by ID' })
-  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: '${primaryKey}', format: 'uuid' })
   @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(${responseDtoName}) })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: '${pascalName} not found' })
-  override async remove(@Param('id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string): Promise<ApiResponseDto<${pascalName}Entity>> {
-    return super.remove(id);
+  override async remove(@Param('${primaryKey}', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ${primaryKey}: string): Promise<ApiResponseDto<${pascalName}Entity>> {
+    return super.remove(${primaryKey});
   }
 ` : ''}
 }
@@ -1212,10 +1365,10 @@ ${ops.create ? `
     const isAutoRegistered = await registerInAppModule(targetDir, pascalName, kebabName);
 
     // 7. Auto-Generate Starter Seed File Template
-    await generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, options.fields);
+    await generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, primaryKey, options.fields);
 
     console.log(chalk.green(`\n✅ Module "${kebabName}" successfully generated in ${path.relative(process.cwd(), moduleDir)}`));
-    console.log(chalk.gray(`    Detected ORM: ${orm}`));
+    console.log(chalk.gray(`   Detected ORM: ${orm}`));
 
     if (!isAutoRegistered) {
       console.log(chalk.yellow(`\n⚠️ Please manually register ${pascalName}Module in src/app.module.ts:`));
@@ -1244,4 +1397,5 @@ module.exports = {
   promptForModuleOptions,
   detectOrm,
   registerInAppModule,
+  ensureBaseArchitecture,
 };
