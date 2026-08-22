@@ -73,9 +73,13 @@ async function promptForProjectDetails(providedAppName, options) {
   // Install dependencies prompt
   if (!options.skipInstall && !options.yes) {
     questions.push({
-      type: 'confirm',
+      type: 'list',
       name: 'installDependencies',
       message: 'Install dependencies?',
+      choices: [
+        { name: 'Yes', value: true },
+        { name: 'No', value: false },
+      ],
       default: true,
     });
   }
@@ -83,9 +87,13 @@ async function promptForProjectDetails(providedAppName, options) {
   // Git initialization prompt
   if (!options.skipGit && !options.yes) {
     questions.push({
-      type: 'confirm',
+      type: 'list',
       name: 'initializeGit',
       message: 'Initialize git repository?',
+      choices: [
+        { name: 'Yes', value: true },
+        { name: 'No', value: false },
+      ],
       default: true,
     });
   }
@@ -93,9 +101,13 @@ async function promptForProjectDetails(providedAppName, options) {
   // Swagger documentation prompt
   if (!options.swagger && !options.yes) {
     questions.push({
-      type: 'confirm',
+      type: 'list',
       name: 'swagger',
       message: 'Add Swagger (OpenAPI) documentation?',
+      choices: [
+        { name: 'Yes', value: true },
+        { name: 'No', value: false },
+      ],
       default: false,
     });
   }
@@ -103,10 +115,14 @@ async function promptForProjectDetails(providedAppName, options) {
   // Base CRUD Architecture prompt
   if (options.baseCrud === undefined && !options.yes) {
     questions.push({
-      type: 'confirm',
+      type: 'list',
       name: 'baseCrud',
       message:
         'Enable Base CRUD Architecture? (generates abstract BaseService, BaseController & Swagger helpers in src/common/base)',
+      choices: [
+        { name: 'Yes', value: true },
+        { name: 'No', value: false },
+      ],
       default: true,
     });
   }
@@ -114,9 +130,13 @@ async function promptForProjectDetails(providedAppName, options) {
   // Generate First CRUD Module prompt
   if (!options.yes) {
     questions.push({
-      type: 'confirm',
+      type: 'list',
       name: 'generateFirstCrud',
       message: 'Do you want to generate your first CRUD module now?',
+      choices: [
+        { name: 'Yes', value: true },
+        { name: 'No', value: false },
+      ],
       default: true,
       when: (answers) => (options.baseCrud !== false && (answers.baseCrud !== false)),
     });

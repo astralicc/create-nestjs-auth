@@ -245,9 +245,13 @@ async function configureModule(providedModuleName, targetDir = process.cwd()) {
 
     if (configChoice === 'guards') {
       const guardAnswer = await inquirer.prompt([{
-        type: 'confirm',
+        type: 'list',
         name: 'protectWriteOps',
         message: 'Protect write operations (POST, PUT, DELETE) with Auth/Roles Guard?',
+        choices: [
+          { name: 'Yes', value: true },
+          { name: 'No', value: false },
+        ],
         default: hasGuards,
       }]);
 

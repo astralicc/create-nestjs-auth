@@ -35,9 +35,13 @@ async function handlePostSetup(targetDir, appName, options) {
   printSuccessHeader(appName, orm, database, swagger, baseCrud);
 
   const { continueSetup } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'continueSetup',
     message: 'Would you like to complete the setup now? (.env, databases)',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: true,
   }]);
 
@@ -145,9 +149,13 @@ async function setupDatabase(targetDir, orm, packageManager) {
 
 async function setupPrisma(targetDir, packageManager) {
   const { setupDatabase } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'setupDatabase',
     message: 'Set up the database now? (generate Prisma client, run migrations, seed)',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: true,
   }]);
 
@@ -196,9 +204,13 @@ async function setupPrisma(targetDir, packageManager) {
 
 async function setupTypeOrm(targetDir, packageManager) {
   const { setupDatabase } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'setupDatabase',
     message: 'Set up the database now? (sync schema, seed)',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: true,
   }]);
 
@@ -225,9 +237,13 @@ async function setupTypeOrm(targetDir, packageManager) {
 
 async function setupMongoose(targetDir, packageManager) {
   const { setupDatabase } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'setupDatabase',
     message: 'Seed the database now? (create default admin user)',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: true,
   }]);
 
@@ -250,9 +266,13 @@ async function setupMongoose(targetDir, packageManager) {
 
 async function setupDrizzle(targetDir, packageManager) {
   const { setupDatabase } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'setupDatabase',
     message: 'Set up the database now? (push schema, seed)',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: true,
   }]);
 
@@ -295,9 +315,13 @@ async function promptCrudGeneration(targetDir, orm, providedModuleName) {
 
   if (!moduleName) {
     const { generateNow } = await inquirer.prompt([{
-      type: 'confirm',
+      type: 'list',
       name: 'generateNow',
       message: 'Do you want to generate your first CRUD module now?',
+      choices: [
+        { name: 'Yes', value: true },
+        { name: 'No', value: false },
+      ],
       default: true,
     }]);
 
@@ -342,9 +366,13 @@ function printNextStepsSummary(orm) {
  */
 async function promptDevServer(targetDir, packageManager) {
   const { startServer } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'startServer',
     message: 'Start the development server now?',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: false,
   }]);
 

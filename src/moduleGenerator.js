@@ -295,9 +295,13 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
   const ormTypeChoices = getOrmFieldChoices(detectedOrm);
 
   const { addCustomFields } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'addCustomFields',
     message: `Do you want to add custom fields to '${moduleName}'?`,
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: true,
   }]);
 
@@ -386,9 +390,13 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
 
           if (editPropChoice === 'optional' || editPropChoice === 'all') {
             const { newOpt } = await inquirer.prompt([{
-              type: 'confirm',
+              type: 'list',
               name: 'newOpt',
               message: `Is '${targetField.name}' optional?`,
+              choices: [
+                { name: 'Yes', value: true },
+                { name: 'No', value: false },
+              ],
               default: targetField.isOptional,
             }]);
             targetField.isOptional = newOpt;
@@ -431,9 +439,13 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
           default: ormTypeChoices[0],
         },
         {
-          type: 'confirm',
+          type: 'list',
           name: 'isOptional',
           message: (ans) => `Is '${ans.fieldName}' optional?`,
+          choices: [
+            { name: 'Yes', value: true },
+            { name: 'No', value: false },
+          ],
           default: false,
         },
       ]);
@@ -446,9 +458,13 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
 
       if (fields.length === 1) {
         const { continueLoop } = await inquirer.prompt([{
-          type: 'confirm',
+          type: 'list',
           name: 'continueLoop',
           message: 'Do you want to add another field?',
+          choices: [
+            { name: 'Yes', value: true },
+            { name: 'No', value: false },
+          ],
           default: false,
         }]);
         if (!continueLoop) {
@@ -466,9 +482,13 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
   // 3. Relationships Prompt
   const relations = [];
   const { addRelation } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'addRelation',
     message: 'Do you want to add a relation to another module?',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: false,
   }]);
 
@@ -506,9 +526,13 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
       });
 
       const { continueRel } = await inquirer.prompt([{
-        type: 'confirm',
+        type: 'list',
         name: 'continueRel',
         message: 'Do you want to add another relation?',
+        choices: [
+          { name: 'Yes', value: true },
+          { name: 'No', value: false },
+        ],
         default: false,
       }]);
       addingRel = continueRel;
@@ -517,17 +541,25 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
 
   // 4. Status Field Prompt
   const { includeStatus } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'includeStatus',
     message: "Include default 'status' field (e.g. ACTIVE)?",
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: true,
   }]);
 
   // 5. Role & Auth Guard Protection Prompt
   const { protectWriteOps } = await inquirer.prompt([{
-    type: 'confirm',
+    type: 'list',
     name: 'protectWriteOps',
     message: 'Protect write operations (POST, PUT, DELETE) with Auth/Roles Guard?',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
     default: true,
   }]);
 

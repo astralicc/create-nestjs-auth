@@ -236,9 +236,13 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
           default: initialValues.type && ormTypeChoices.includes(initialValues.type) ? initialValues.type : ormTypeChoices[0],
         },
         {
-          type: 'confirm',
+          type: 'list',
           name: 'isOptional',
           message: (answers) => `Is '${answers.fieldName}' optional?`,
+          choices: [
+            { name: 'Yes', value: true },
+            { name: 'No', value: false },
+          ],
           default: initialValues.isOptional !== undefined ? initialValues.isOptional : false,
         },
       ]);
@@ -323,9 +327,13 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
         managing = false; // exit loop after successful save
 
         const { runDbNow } = await inquirer.prompt([{
-          type: 'confirm',
+          type: 'list',
           name: 'runDbNow',
           message: 'Run database migration & seed now?',
+          choices: [
+            { name: 'Yes', value: true },
+            { name: 'No', value: false },
+          ],
           default: false,
         }]);
 

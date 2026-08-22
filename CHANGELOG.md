@@ -5,6 +5,13 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.1] - 2026-08-22
+
+### UX Improvements
+- **Interactive Yes/No Selection Prompts Across All Commands** — Replaced raw `confirm` prompts across all CLI modules (`create`, `generate`/`g`, `field`/`f`, `config`/`c`, `seed`/`s`, `remover`) with interactive `list` selections featuring arrow key navigation (`❯ Yes / No`) and clear green output history logs (`✔ Install dependencies? Yes`). Solves un-echoed typing and user confusion.
+
+---
+
 ## [2.10.0] - 2026-08-22
 
 ### Added

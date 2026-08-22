@@ -115,9 +115,13 @@ async function removeModule(providedModuleName, targetDir = process.cwd(), optio
     let confirmDelete = options.skipConfirm;
     if (confirmDelete === undefined) {
       const ans = await inquirer.prompt([{
-        type: 'confirm',
+        type: 'list',
         name: 'confirmDelete',
         message: `⚠️  Are you sure you want to completely delete the module '${kebabName}'?`,
+        choices: [
+          { name: 'Yes', value: true },
+          { name: 'No', value: false },
+        ],
         default: false,
       }]);
       confirmDelete = ans.confirmDelete;
@@ -131,9 +135,13 @@ async function removeModule(providedModuleName, targetDir = process.cwd(), optio
     let removeSchema = options.removeSchema;
     if (removeSchema === undefined) {
       const ans = await inquirer.prompt([{
-        type: 'confirm',
+        type: 'list',
         name: 'removeSchema',
         message: `🗄️  Do you also want to remove the database schema / entity / table for '${kebabName}'?`,
+        choices: [
+          { name: 'Yes', value: true },
+          { name: 'No', value: false },
+        ],
         default: true,
       }]);
       removeSchema = ans.removeSchema;
