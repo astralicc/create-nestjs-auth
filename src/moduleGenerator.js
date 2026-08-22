@@ -7,6 +7,7 @@ const inquirer = require('inquirer');
 const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
+require('./utils');
 
 function toPascalCase(str) {
   return str

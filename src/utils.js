@@ -102,6 +102,70 @@ function getRunPrefix(packageManager) {
   return packageManager === 'npm' ? 'npm run' : packageManager;
 }
 
+/**
+ * Registers a strict confirm prompt in inquirer that enforces valid inputs ('y', 'n', 'yes', 'no', or empty for default).
+ * Invalid inputs like 't' will prompt a validation error instead of defaulting to 'no'.
+ * @param {object} [inquirerInstance] - Optional inquirer module instance
+ */
+function registerStrictConfirmPrompt(inquirerInstance = require('inquirer')) {
+  try {
+    const InputPrompt = inquirerInstance.prompt.prompts['input'];
+    if (!InputPrompt) return;
+
+    class StrictConfirmPrompt extends InputPrompt {
+      constructor(questions, rl, answers) {
+        super(questions, rl, answers);
+        if (this.opt.default === undefined) {
+          this.opt.default = true;
+        }
+      }
+
+      render(answer) {
+        let message = this.getQuestion();
+
+        if (this.status === 'answered') {
+          message += chalk.cyan(answer !== undefined ? (answer ? 'Yes' : 'No') : (this.answer ? 'Yes' : 'No'));
+        } else {
+          message += chalk.dim(this.opt.default ? ' (Y/n)' : ' (y/N)');
+        }
+
+        let bottomContent = '';
+        if (this.error) {
+          bottomContent = chalk.red('>> ') + this.error;
+        }
+
+        this.screen.render(message, bottomContent);
+      }
+
+      validate(input) {
+        if (input === undefined || input === null || input.toString().trim() === '') {
+          return true;
+        }
+        const val = input.toString().trim().toLowerCase();
+        if (['y', 'yes', 'n', 'no'].includes(val)) {
+          return true;
+        }
+        return "Invalid input. Please enter 'y' or 'n'.";
+      }
+
+      filterInput(input) {
+        if (input === undefined || input === null || input.toString().trim() === '') {
+          return this.opt.default !== false;
+        }
+        const val = input.toString().trim().toLowerCase();
+        return ['y', 'yes'].includes(val);
+      }
+    }
+
+    inquirerInstance.registerPrompt('confirm', StrictConfirmPrompt);
+  } catch {
+    // Ignore error
+  }
+}
+
+// Auto-register strict confirm prompt upon requiring utils
+registerStrictConfirmPrompt();
+
 module.exports = {
   validateAppName,
   checkNodeVersion,
@@ -109,4 +173,6 @@ module.exports = {
   getInstallCommand,
   generateJWTSecret,
   getRunPrefix,
+  registerStrictConfirmPrompt,
 };
+

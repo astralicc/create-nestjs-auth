@@ -5,6 +5,13 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2026-08-22
+
+### Fixed
+- **Strict Input Validation for CLI Confirm Prompts** — Implemented `StrictConfirmPrompt` across all CLI interactive prompts. Previously, typing invalid characters (e.g. `'t'`) on boolean confirm prompts would silently default to `'no'`. Now, only valid inputs (`'y'`, `'n'`, `'yes'`, `'no'`, or pressing Enter for default) are accepted, and typing invalid characters displays `>> Invalid input. Please enter 'y' or 'n'.` and re-prompts the user.
+
+---
+
 ## [2.7.0] - 2026-08-22
 
 ### Added
