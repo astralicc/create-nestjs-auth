@@ -101,13 +101,33 @@ async function promptForProjectDetails(providedAppName, options) {
   }
 
   // Base CRUD Architecture prompt
-  if (!options.baseCrud && !options.yes) {
+  if (options.baseCrud === undefined && !options.yes) {
     questions.push({
       type: 'confirm',
       name: 'baseCrud',
       message:
         'Enable Base CRUD Architecture? (generates abstract BaseService, BaseController & Swagger helpers in src/common/base)',
-      default: false,
+      default: true,
+    });
+  }
+
+  // Generate First CRUD Module prompt
+  if (!options.yes) {
+    questions.push({
+      type: 'confirm',
+      name: 'generateFirstCrud',
+      message: 'Do you want to generate your first CRUD module now?',
+      default: true,
+      when: (answers) => (options.baseCrud !== false && (answers.baseCrud !== false)),
+    });
+
+    questions.push({
+      type: 'input',
+      name: 'firstModuleName',
+      message: 'What module do you want to generate? (e.g., orders, products)',
+      default: 'orders',
+      when: (answers) => answers.generateFirstCrud,
+      validate: (input) => (input && input.trim() ? true : 'Module name is required'),
     });
   }
 
@@ -127,7 +147,9 @@ async function promptForProjectDetails(providedAppName, options) {
     installDependencies: options.skipInstall ? false : answers.installDependencies !== false,
     initializeGit: options.skipGit ? false : answers.initializeGit !== false,
     swagger: options.swagger || answers.swagger || false,
-    baseCrud: options.baseCrud || answers.baseCrud || false,
+    baseCrud: options.baseCrud !== undefined ? options.baseCrud : (answers.baseCrud !== false),
+    generateFirstCrud: answers.generateFirstCrud || false,
+    firstModuleName: answers.firstModuleName || undefined,
   };
 }
 

@@ -5,6 +5,28 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-08-22
+
+### Added
+- **Scaffolding Cleanup** — Static `src/modules/products` directory has been completely removed from all initial project templates (`templates/base-crud*`). Scaffolding now creates zero CRUD modules by default.
+- **Interactive Field Builder Loop** — When generating a module (via guided setup or `speedrun-cli g [module_name]`), users can interactively define custom fields (`fieldName`, `fieldType`: `String`/`Number`/`Boolean`/`Date`, `isOptional`).
+- **Dynamic ORM Schema Synchronization** — Automatically syncs definitions to the project's detected ORM:
+  - **Prisma:** Appends `model` with appropriate data types (`String`, `Float`/`Int`, `Boolean`, `DateTime`) and optional modifiers (`?`) to `prisma/schema.prisma`.
+  - **TypeORM:** Generates `@Entity()` class in `src/modules/[kebab]/entities/[singular].entity.ts`.
+  - **Mongoose:** Generates `@Schema()` class in `src/modules/[kebab]/schemas/[singular].schema.ts`.
+  - **Drizzle:** Generates `pgTable` definition in `src/modules/[kebab]/schema/[kebab].schema.ts`.
+- **Auto-Generated Starter Seed Template** — Creates starter seed snippet populated with dummy data based on defined fields in `prisma/seeds/[kebab].seed.ts` (Prisma) or `src/database/seeds/[kebab].seed.ts` (TypeORM/Mongoose/Drizzle).
+- **Dynamic Post-Setup Summary Log** — Displays clear post-install next steps dynamically tailored for each ORM (migration & seed commands).
+
+### Changed
+- **Interactive Setup Prompt Sequence** updated:
+  1. `Enable Base CRUD Architecture?` (Default: `Yes`)
+  2. `Do you want to generate your first CRUD module now?` (Default: `Yes`)
+  3. Shared Module Generator execution for module name, CRUD mode, and custom field loop.
+- **Controller Service Constructor Visibility** fixed to `protected readonly service: [Name]Service` so generated controllers safely extend `BaseController`.
+
+---
+
 ## [2.6.10] - 2026-08-21
 
 ### Fixed

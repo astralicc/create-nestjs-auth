@@ -10,6 +10,7 @@ const chalk = require('chalk');
 const inquirer = require('inquirer');
 const { ORM_OPTIONS, DATABASE_OPTIONS } = require('./constants');
 const { generateJWTSecret, getRunPrefix } = require('./utils');
+
 // Lazy-loaded to avoid circular deps: moduleGenerator requires constants/utils
 let _generateModule;
 function getGenerateModule() {
@@ -25,7 +26,7 @@ function getGenerateModule() {
  * @returns {Promise<boolean>} Whether interactive setup completed
  */
 async function handlePostSetup(targetDir, appName, options) {
-  const { packageManager, orm, database, swagger, baseCrud, yes: isYesMode, skipInstall } = options;
+  const { packageManager, orm, database, swagger, baseCrud, generateFirstCrud, firstModuleName, yes: isYesMode, skipInstall } = options;
 
   if (isYesMode || skipInstall) {
     return false;
@@ -50,10 +51,15 @@ async function handlePostSetup(targetDir, appName, options) {
   // Step 2: ORM-specific database setup (Schema/Migration → Seed)
   await setupDatabase(targetDir, orm, packageManager);
 
-  // Step 3: CRUD module generation (always offered when setup is accepted)
-  await promptCrudGeneration(targetDir, orm);
+  // Step 3: CRUD module generation
+  if (generateFirstCrud !== false) {
+    await promptCrudGeneration(targetDir, orm, firstModuleName);
+  }
 
-  // Step 4: Optionally start dev server
+  // Step 4: Display Post-Setup Summary Log with Next Steps
+  printNextStepsSummary(orm);
+
+  // Step 5: Optionally start dev server
   await promptDevServer(targetDir, packageManager);
 
   return true;
@@ -82,7 +88,7 @@ async function configureEnvironment(targetDir, database) {
   console.log(chalk.yellow('\n🔑 Generating JWT secrets...\n'));
   const accessSecret = generateJWTSecret();
   const refreshSecret = generateJWTSecret();
-  
+
   console.log(chalk.gray('   Generated JWT_ACCESS_SECRET'));
   console.log(chalk.gray('   Generated JWT_REFRESH_SECRET\n'));
 
@@ -107,7 +113,7 @@ async function configureEnvironment(targetDir, database) {
   // Update .env file
   console.log(chalk.gray('\n   Updating .env file...'));
   const envPath = path.join(targetDir, '.env');
-  
+
   try {
     let envContent = await fs.readFile(envPath, 'utf8');
     envContent = envContent.replace(/DATABASE_URL=.*/, `DATABASE_URL="${databaseUrl}"`);
@@ -170,14 +176,14 @@ async function setupPrisma(targetDir, packageManager) {
   try {
     console.log(chalk.gray('   Generating Prisma client...'));
     execSync(`${pmPrefix} prisma:generate`, { cwd: targetDir, stdio: 'inherit' });
-    
+
     console.log(chalk.gray('\n   Running database migrations...'));
     // Run prisma directly with --name to avoid double prompt
     execSync(`npx prisma migrate dev --name ${migrationName}`, { cwd: targetDir, stdio: 'inherit' });
-    
+
     console.log(chalk.gray('\n   Seeding database...'));
     execSync(`${pmPrefix} prisma:seed`, { cwd: targetDir, stdio: 'inherit' });
-    
+
     printCredentials();
   } catch {
     console.error(chalk.red('\n   ✗ Database setup failed'));
@@ -204,10 +210,10 @@ async function setupTypeOrm(targetDir, packageManager) {
   try {
     console.log(chalk.gray('   Synchronizing database schema...'));
     execSync(`${pmPrefix} schema:sync`, { cwd: targetDir, stdio: 'inherit' });
-    
+
     console.log(chalk.gray('\n   Seeding database...'));
     execSync(`${pmPrefix} seed`, { cwd: targetDir, stdio: 'inherit' });
-    
+
     printCredentials();
   } catch {
     console.error(chalk.red('\n   ✗ Database setup failed'));
@@ -233,7 +239,7 @@ async function setupMongoose(targetDir, packageManager) {
   try {
     console.log(chalk.gray('   Seeding database...'));
     execSync(`${pmPrefix} db:seed`, { cwd: targetDir, stdio: 'inherit' });
-    
+
     printCredentials();
   } catch {
     console.error(chalk.red('\n   ✗ Database setup failed'));
@@ -258,10 +264,10 @@ async function setupDrizzle(targetDir, packageManager) {
   try {
     console.log(chalk.gray('   Pushing schema to database...'));
     execSync(`${pmPrefix} db:push`, { cwd: targetDir, stdio: 'inherit' });
-    
+
     console.log(chalk.gray('\n   Seeding database...'));
     execSync(`${pmPrefix} db:seed`, { cwd: targetDir, stdio: 'inherit' });
-    
+
     printCredentials();
   } catch {
     console.error(chalk.red('\n   ✗ Database setup failed'));
@@ -284,24 +290,50 @@ function printCredentials() {
 /**
  * Prompts user to generate their first CRUD module
  */
-async function promptCrudGeneration(targetDir, orm) {
-  const { generateNow } = await inquirer.prompt([{
-    type: 'confirm',
-    name: 'generateNow',
-    message: 'Do you want to generate your first CRUD module now?',
-    default: true,
-  }]);
+async function promptCrudGeneration(targetDir, orm, providedModuleName) {
+  let moduleName = providedModuleName;
 
-  if (!generateNow) {
-    console.log(chalk.gray('\n   Skipping CRUD generation. Run `speedrun-cli generate <name>` anytime.\n'));
-    return;
+  if (!moduleName) {
+    const { generateNow } = await inquirer.prompt([{
+      type: 'confirm',
+      name: 'generateNow',
+      message: 'Do you want to generate your first CRUD module now?',
+      default: true,
+    }]);
+
+    if (!generateNow) {
+      console.log(chalk.gray('\n   Skipping CRUD generation. Run `speedrun-cli generate <name>` anytime.\n'));
+      return;
+    }
   }
 
   try {
-    await getGenerateModule()(undefined, targetDir, orm);
+    await getGenerateModule()(moduleName, targetDir, orm);
   } catch (err) {
-    console.warn(chalk.yellow(`\n   ⚠️  CRUD generation failed: ${err.message}`));
+    console.warn(chalk.yellow(`\n   ⚠️ CRUD generation failed: ${err.message}`));
     console.warn(chalk.gray('   Run `speedrun-cli generate <name>` manually inside your project.\n'));
+  }
+}
+
+/**
+ * Display post-install summary with instructions to run database migrations and seeds dynamically based on selected ORM
+ */
+function printNextStepsSummary(orm) {
+  console.log(chalk.cyan.bold('\n💡 Next Steps:\n'));
+
+  if (orm === 'prisma') {
+    console.log(chalk.white('1. Run Database Migration: ') + chalk.yellow('npx prisma db push'));
+    console.log(chalk.white('2. Run Database Seed:      ') + chalk.yellow('npm run seed\n'));
+  } else if (orm === 'typeorm') {
+    console.log(chalk.white('1. Synchronize Database Schema: ') + chalk.yellow('npm run schema:sync'));
+    console.log(chalk.white('2. Run Database Seed:            ') + chalk.yellow('npm run seed\n'));
+  } else if (orm === 'mongoose') {
+    console.log(chalk.white('1. Run Database Seed: ') + chalk.yellow('npm run db:seed\n'));
+  } else if (orm === 'drizzle') {
+    console.log(chalk.white('1. Push Schema to Database: ') + chalk.yellow('npm run db:push'));
+    console.log(chalk.white('2. Run Database Seed:       ') + chalk.yellow('npm run db:seed\n'));
+  } else {
+    console.log(chalk.white('1. Run Database Migration & Seed commands for your ORM\n'));
   }
 }
 
@@ -323,7 +355,7 @@ async function promptDevServer(targetDir, packageManager) {
   console.log(chalk.gray(`   Press ${chalk.bold('Ctrl+C')} to stop the server\n`));
 
   const pmPrefix = getRunPrefix(packageManager);
-  
+
   try {
     execSync(`${pmPrefix} start:dev`, { cwd: targetDir, stdio: 'inherit' });
   } catch {
@@ -336,7 +368,7 @@ async function promptDevServer(targetDir, packageManager) {
  */
 function printManualInstructions(appName, options) {
   const { orm, database, packageManager, installDependencies, swagger, baseCrud } = options;
-  
+
   console.log(chalk.green('\n✅ Success! Created ' + chalk.bold(appName)));
   console.log(chalk.gray(`   ORM: ${ORM_OPTIONS[orm]?.name || orm}`));
   console.log(chalk.gray(`   Database: ${DATABASE_OPTIONS[database]?.name || database}`));
@@ -348,49 +380,37 @@ function printManualInstructions(appName, options) {
   }
   console.log(chalk.white('\n📚 Next steps:\n'));
   console.log(chalk.cyan(`   cd ${appName}`));
-  
+
   if (!installDependencies) {
     const installCmd = require('./utils').getInstallCommand(packageManager);
     console.log(chalk.cyan(`   ${installCmd}`));
   }
-  
+
   console.log(chalk.cyan('\n   # Generate secure JWT secrets (save these!):'));
   console.log(chalk.gray('   openssl rand -base64 32  # For JWT_ACCESS_SECRET'));
   console.log(chalk.gray('   openssl rand -base64 32  # For JWT_REFRESH_SECRET'));
   console.log(chalk.cyan('\n   # Edit .env with your database URL and JWT secrets'));
-  
-  const ormCommands = {
-    prisma: ['prisma:generate', 'prisma:migrate', 'prisma:seed'],
-    typeorm: ['schema:sync', 'seed'],
-    mongoose: ['db:seed'],
-    drizzle: ['db:push', 'db:seed'],
-  };
-  
-  const commands = ormCommands[orm];
-  if (commands) {
-    console.log(chalk.cyan('\n   # Then setup the database:'));
-    commands.forEach((cmd) => console.log(chalk.gray(`   npm run ${cmd}`)));
-  }
-  
-  console.log(chalk.cyan('\n   # Generate your first CRUD module:'));
+
+  printNextStepsSummary(orm);
+
+  console.log(chalk.cyan('   # Generate your first CRUD module:'));
   console.log(chalk.gray('   speedrun-cli generate <module-name>'));
   console.log(chalk.gray('   # e.g. speedrun-cli generate orders'));
 
   console.log(chalk.cyan('\n   # Start development server:'));
   console.log(chalk.gray('   npm run start:dev'));
-  
+
   if (swagger) {
     console.log(chalk.cyan('\n   # Swagger API documentation:'));
     console.log(chalk.gray('   http://localhost:8080/api/docs'));
   }
-  
+
   if (baseCrud) {
     console.log(chalk.cyan('\n   # Base CRUD Architecture:'));
     console.log(chalk.gray('   src/common/base/   — BaseService & BaseController'));
-    console.log(chalk.gray('   src/modules/products/  — Concrete example (ProductModule)'));
-    console.log(chalk.gray('   CRUD_README.md         — Full guide & cheatsheet'));
+    console.log(chalk.gray('   CRUD_README.md     — Full guide & cheatsheet'));
   }
-  
+
   console.log(chalk.white('\n📖 Documentation: https://github.com/masabinhok/create-nestjs-auth'));
   console.log(chalk.white('🐛 Issues: https://github.com/masabinhok/create-nestjs-auth/issues\n'));
   console.log(chalk.magenta('Happy coding! 🎉\n'));
@@ -399,4 +419,5 @@ function printManualInstructions(appName, options) {
 module.exports = {
   handlePostSetup,
   printManualInstructions,
+  printNextStepsSummary,
 };
