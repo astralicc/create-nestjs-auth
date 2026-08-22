@@ -5,29 +5,7 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.8.3] - 2026-08-22
-
-### Fixed
-- **Runtime Error `TypeError: manageFields is not a function` Fixed** — Exported `fieldManager` in `src/index.js` entry point so `manageFields` is properly destructured in `bin/cli.js` when executing `speedrun-cli field [module]`.
-- **Module Field Regeneration** — Exported `regenerateModuleComponents` in `src/moduleGenerator.js` to enable automatic DTO and ORM schema updates when field definitions are edited via `speedrun-cli field`.
-
----
-
-## [2.8.2] - 2026-08-22
-
-### Added
-- **Optional `status` Field Prompt** — Added interactive prompt `Include default 'status' field (e.g. ACTIVE)? (Y/n)` during module generation. Users can now choose whether to include or omit the `status` column from ORM schemas (Prisma, TypeORM, Mongoose, Drizzle), DTOs, and seed files.
-
----
-
-## [2.8.1] - 2026-08-22
-
-### Fixed
-- **Automated Migration Flow for CRUD Modules & JWT Setup** — Reordered post-setup steps in `handlePostSetup` so CRUD module generation occurs *before* database migrations/seeding. Any generated CRUD modules and schema updates are now automatically included when running `prisma migrate dev` / `schema:sync` / `db:push` and seeding during CLI setup.
-
----
-
-## [2.8.0] - 2026-08-22
+## [2.7.10] - 2026-08-22
 
 ### Added
 - **Auto-Scaffold Missing Base Architecture (`ensureBaseArchitecture`)** — When generating modules via `speedrun-cli g [module]`, `src/common/base` is automatically scaffolded if missing from target project, resolving TS2307 & TS4112 compilation errors.
@@ -40,38 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Specific Field Editing Sub-menu** — Interactive sub-menu allows modifying specific field properties (Field Name, Field Type, Optional Status, or All) instead of forcing full re-entry.
 - **Advanced Relationship Builder** — Interactively add relations (`Many-to-One`, `One-to-Many`) pointing to target modules and foreign keys, automatically injecting attributes into Prisma, TypeORM, Mongoose, and Drizzle schemas.
 - **Auth & Roles Guard Protection Prompt** — Optional step to protect write operations (`POST`, `PUT`, `DELETE`) with `@UseGuards()` and role-based decorators (`ADMIN`, `USER`, `MANAGER`).
+- **Optional `status` Field Prompt** — Added interactive prompt `Include default 'status' field (e.g. ACTIVE)? (Y/n)` during module generation to include or omit status field.
+
+### Fixed
+- **Runtime Error `TypeError: manageFields is not a function` Fixed** — Exported `fieldManager` in `src/index.js` entry point so `manageFields` is properly destructured in `bin/cli.js` when executing `speedrun-cli field [module]`.
+- **Module Field Regeneration** — Exported `regenerateModuleComponents` in `src/moduleGenerator.js` to enable automatic DTO and ORM schema updates when field definitions are edited via `speedrun-cli field`.
+- **Automated Migration Flow for CRUD Modules & JWT Setup** — Reordered post-setup steps in `handlePostSetup` so CRUD module generation occurs *before* database migrations/seeding. Any generated CRUD modules and schema updates are now automatically included when running `prisma migrate dev` / `schema:sync` / `db:push` and seeding during CLI setup.
+- **Strict Input Validation for CLI Confirm Prompts** — Enforced strict `y`/`n` input validation across all CLI interactive prompts.
 
 ### Changed
 - **Standardized Import Statements** — Controller & Service templates now fetch `BaseController`, `BaseService`, `IBaseRepository`, `ApiResponseDto`, `ApiResponseSchema`, `PaginatedResponseDto`, `PaginatedResponseSchema`, `PaginationQueryDto` cleanly from the single barrel export `../../common/base`.
-
----
-
-## [2.7.1] - 2026-08-22
-
-### Fixed
-- **Strict Input Validation for CLI Confirm Prompts** — Implemented `StrictConfirmPrompt` across all CLI interactive prompts. Previously, typing invalid characters (e.g. `'t'`) on boolean confirm prompts would silently default to `'no'`. Now, only valid inputs (`'y'`, `'n'`, `'yes'`, `'no'`, or pressing Enter for default) are accepted, and typing invalid characters displays `>> Invalid input. Please enter 'y' or 'n'.` and re-prompts the user.
-
----
-
-## [2.7.0] - 2026-08-22
-
-### Added
-- **Scaffolding Cleanup** — Static `src/modules/products` directory has been completely removed from all initial project templates (`templates/base-crud*`). Scaffolding now creates zero CRUD modules by default.
-- **Interactive Field Builder Loop** — When generating a module (via guided setup or `speedrun-cli g [module_name]`), users can interactively define custom fields (`fieldName`, `fieldType`: `String`/`Number`/`Boolean`/`Date`, `isOptional`).
-- **Dynamic ORM Schema Synchronization** — Automatically syncs definitions to the project's detected ORM:
-  - **Prisma:** Appends `model` with appropriate data types (`String`, `Float`/`Int`, `Boolean`, `DateTime`) and optional modifiers (`?`) to `prisma/schema.prisma`.
-  - **TypeORM:** Generates `@Entity()` class in `src/modules/[kebab]/entities/[singular].entity.ts`.
-  - **Mongoose:** Generates `@Schema()` class in `src/modules/[kebab]/schemas/[singular].schema.ts`.
-  - **Drizzle:** Generates `pgTable` definition in `src/modules/[kebab]/schema/[kebab].schema.ts`.
-- **Auto-Generated Starter Seed Template** — Creates starter seed snippet populated with dummy data based on defined fields in `prisma/seeds/[kebab].seed.ts` (Prisma) or `src/database/seeds/[kebab].seed.ts` (TypeORM/Mongoose/Drizzle).
-- **Dynamic Post-Setup Summary Log** — Displays clear post-install next steps dynamically tailored for each ORM (migration & seed commands).
-
-### Changed
-- **Interactive Setup Prompt Sequence** updated:
-  1. `Enable Base CRUD Architecture?` (Default: `Yes`)
-  2. `Do you want to generate your first CRUD module now?` (Default: `Yes`)
-  3. Shared Module Generator execution for module name, CRUD mode, and custom field loop.
-- **Controller Service Constructor Visibility** fixed to `protected readonly service: [Name]Service` so generated controllers safely extend `BaseController`.
 
 ---
 
