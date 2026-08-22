@@ -113,6 +113,49 @@ Building secure JWT authentication and standard CRUD operations from scratch usu
 
 ---
 
+## ⚙️ How It Works Behind the Scenes
+
+`speedrun-cli` isn't just a simple template copier — it's an intelligent code generation engine that dynamically compiles ORM schemas, NestJS DTOs, Controllers, and Services based on interactive inputs.
+
+```mermaid
+graph TD
+    A[npx speedrun-cli create / g / f] --> B[1. Prompt Engine & Package Manager Detection]
+    B --> C[2. Template Fusion & Base Architecture Scaffolding]
+    C --> D[3. ORM Schema & Entity Synchronization]
+    D --> E[4. Type-Safe DTO & Swagger Schema Generator]
+    E --> F[5. Controller & Service Code Compilation]
+    F --> G[6. Auto AppModule Registration & DB Migration/Seed]
+
+    style A fill:#667eea,color:#fff
+    style G fill:#48bb78,color:#fff
+```
+
+### 1. Template Fusion & Base Architecture (`src/generator.js`)
+When running `create`, the CLI dynamically merges modular template layers based on your chosen ORM (`Prisma`, `TypeORM`, `Drizzle`, `Mongoose`) and Database (`PostgreSQL`, `MySQL`, `SQLite`, `MongoDB`). It automatically injects the `src/common/base` architecture containing abstract `BaseController`, `BaseService`, and Swagger response wrappers.
+
+### 2. Custom Primary Key & ORM Schema Sync (`src/moduleGenerator.js`)
+When generating a module (`speedrun-cli g [module]`), your primary key selection (`id`, `order_id`, `orderId`, etc.) is bound across the entire stack:
+- **Database Layer:** Marks the custom primary key column in Prisma (`@id`), TypeORM (`@PrimaryGeneratedColumn`), Drizzle (`primaryKey()`), or Mongoose (`@Prop`).
+- **Service Layer:** Binds database query filters (`where: { order_id }`) for all CRUD methods.
+- **Controller Layer:** Generates route params `@Param('order_id', ParseUUIDPipe)` matching OpenAPI `@ApiParam()` documentation.
+
+### 3. ORM-Native Type Mapping & DTO Compilation
+Field types selected in the interactive prompt (`Int`, `Float`, `Decimal`, `DateTime`, `varchar`, `timestamp`, `numeric`) are automatically converted into:
+- **TypeScript Types:** `string`, `number`, `boolean`, `Date`, `object`.
+- **Validation Rules:** `@IsString()`, `@IsInt()`, `@IsNumber()`, `@IsBoolean()`, `@IsDate()`, `@Type(() => Date)`.
+- **Swagger Documentation:** `@ApiProperty()` / `@ApiPropertyOptional()` metadata with realistic example values.
+
+### 4. Automatic `AppModule` Injection
+The CLI parses `src/app.module.ts` using static analysis, adding the new module's import statement at the top and registering it inside `@Module({ imports: [...] })` so your API routes are active instantly.
+
+### 5. Interactive Field Manager Engine (`src/fieldManager.js`)
+When managing fields on an existing module (`speedrun-cli f [module]`):
+- **Parser Engine:** Reads `create-[module].dto.ts` and decodes `class-validator` decorators to accurately reconstruct existing fields and ORM types without precision loss.
+- **Sub-Menu Property Editor:** Allows isolated changes to field name, field type, or optional status without touching adjacent properties.
+- **Re-Sync Engine:** Updates all 3 DTOs (`create`, `update`, `response`), updates the ORM model definition in-place, and prompts to trigger immediate database migration and seeding.
+
+---
+
 ## 🛡️ What You Get
 
 <table>
