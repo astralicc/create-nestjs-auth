@@ -25,18 +25,18 @@
     "generator"
   ],
   "author": {
-    "name": "Sabin Shrestha",
-    "email": "sabin.shrestha.er@gmail.com",
-    "url": "https://sabinshrestha69.com.np"
+    "name": "astralicc",
+    "email": "innzwha@gmail.com",
+    "url": "https://instagram.com/iifn.aa"
   },
   "license": "MIT",
-  "homepage": "https://github.com/masabinhok/create-nestjs-auth#readme",
+  "homepage": "https://github.com/astralicc/speedrun-cli#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/masabinhok/create-nestjs-auth.git"
+    "url": "git+https://github.com/astralicc/speedrun-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/masabinhok/create-nestjs-auth/issues"
+    "url": "https://github.com/astralicc/speedrun-cli/issues"
   },
   "bin": {
     "create-nestjs-auth": "./index.js"
