@@ -12,6 +12,7 @@ This document provides a comprehensive reference for all commands, interactive p
 5. [Case 4: Editing Field Attributes (`speedrun-cli field`)](#5-case-4-editing-field-attributes-via-sub-menu-speedrun-cli-field-module)
 6. [Case 5: Deleting Fields (`speedrun-cli field`)](#6-case-5-deleting-fields-speedrun-cli-field-module)
 7. [Case 6: Multi-ORM Schema Output Matrix](#7-case-6-multi-orm-schema-output-matrix)
+8. [Case 7: Dynamic Module Configuration (`speedrun-cli config`)](#8-case-7-dynamic-module-configuration-speedrun-cli-config-module)
 
 ---
 
@@ -22,6 +23,7 @@ This document provides a comprehensive reference for all commands, interactive p
 | `speedrun-cli create [app-name]` | - | Scaffold a complete NestJS authentication project | `npx speedrun-cli create my-api` |
 | `speedrun-cli generate [module-name]` | `g` | Interactively generate a new CRUD module | `npx speedrun-cli g orders` |
 | `speedrun-cli field [module-name]` | `f` | Manage (add, edit, delete) fields of an existing module | `npx speedrun-cli f orders` |
+| `speedrun-cli config [module-name]` | `c` | Customize role guards (`@Roles`), auth protection & active CRUD routes | `npx speedrun-cli c orders` |
 
 ---
 
@@ -559,3 +561,142 @@ export class Product {
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
 ```
+
+---
+
+## 8. Case 7: Dynamic Module Configuration (`speedrun-cli config [module]`)
+
+The `config` (alias `c`) command lets you dynamically modify role-based access controls and enable or disable CRUD endpoints on existing controllers without manually editing controller code.
+
+### Command
+```bash
+npx speedrun-cli config orders
+# or alias:
+npx speedrun-cli c orders
+```
+
+---
+
+### Scenario 7A: Managing Auth & Roles Guards (`@Roles`)
+
+### Interactive Terminal Flow
+```text
+⚙️  Configuring module: orders
+
+? Select configuration action:
+  ❯ 🔐 Manage Auth & Roles Guards (POST, PUT, DELETE protection)
+    🛠️  Toggle Active CRUD Operations (Enable/Disable endpoints)
+    ❌ Cancel
+
+? Protect write operations (POST, PUT, DELETE) with Auth/Roles Guard? (Y/n) Y
+? Select allowed roles for write operations:
+  [*] ADMIN
+  [*] SUPERADMIN
+  [ ] USER
+  [*] Custom Role...
+
+? Enter custom role name(s) (comma-separated, e.g., AUDITOR, EDITOR): AUDITOR
+
+✅ Successfully updated module configuration for "orders"!
+   Controller: src/modules/orders/orders.controller.ts
+   Protected Write Ops: ADMIN, SUPERADMIN, AUDITOR
+   Active Operations: create, findAll, findOne, update, remove
+```
+
+---
+
+### Scenario 7B: Toggling Active CRUD Operations (Disabling Endpoints)
+
+### Interactive Terminal Flow
+```text
+⚙️  Configuring module: orders
+
+? Select configuration action:
+    🔐 Manage Auth & Roles Guards (POST, PUT, DELETE protection)
+  ❯ 🛠️  Toggle Active CRUD Operations (Enable/Disable endpoints)
+    ❌ Cancel
+
+? Select active CRUD operations:
+  [*] Create (POST)
+  [*] Read All / findAll (GET)
+  [*] Read One / findOne (GET /:id)
+  [*] Update (PUT /:id)
+  [ ] Delete / remove (DELETE /:id)
+
+✅ Successfully updated module configuration for "orders"!
+   Controller: src/modules/orders/orders.controller.ts
+   Protected Write Ops: ADMIN, SUPERADMIN, AUDITOR
+   Active Operations: create, findAll, findOne, update
+```
+
+---
+
+### Updated Code Output (`orders.controller.ts`)
+```typescript
+import { Controller, Query, Param, ParseUUIDPipe, HttpStatus, Post, Body, Get, Put, Type, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiExtraModels, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { BaseController, ApiResponseDto, ApiResponseSchema, PaginatedResponseDto, PaginatedResponseSchema, PaginationQueryDto } from '../../common/base';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { OrdersService } from './orders.service';
+import { CreateOrdersDto } from './dto/create-orders.dto';
+import { UpdateOrdersDto } from './dto/update-orders.dto';
+import { OrdersDto } from './dto/orders.dto';
+
+type OrdersEntity = any;
+
+@ApiTags('Orders')
+@ApiBearerAuth('bearer')
+@ApiExtraModels(ApiResponseDto, PaginatedResponseDto, OrdersDto)
+@Controller('orders')
+export class OrdersController extends BaseController<OrdersEntity, CreateOrdersDto, UpdateOrdersDto> {
+  constructor(protected readonly service: OrdersService) {
+    super(service);
+  }
+
+  protected getDtoClass(): Type<OrdersEntity> {
+    return OrdersDto as unknown as Type<OrdersEntity>;
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'AUDITOR')
+  @ApiOperation({ summary: 'Create a new orders' })
+  @ApiResponse({ status: HttpStatus.CREATED, schema: ApiResponseSchema(OrdersDto) })
+  override async create(@Body() dto: CreateOrdersDto): Promise<ApiResponseDto<OrdersEntity>> {
+    return super.create(dto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all orders (paginated)' })
+  @ApiResponse({ status: HttpStatus.OK, schema: PaginatedResponseSchema(OrdersDto) })
+  override async findAll(@Query() pagination: PaginationQueryDto): Promise<PaginatedResponseDto<OrdersEntity>> {
+    return super.findAll(pagination);
+  }
+
+  @Get(':order_id')
+  @ApiOperation({ summary: 'Get orders by ID' })
+  @ApiParam({ name: 'order_id', format: 'uuid' })
+  @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(OrdersDto) })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Orders not found' })
+  override async findOne(@Param('order_id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) order_id: string): Promise<ApiResponseDto<OrdersEntity>> {
+    return super.findOne(order_id);
+  }
+
+  @Put(':order_id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'AUDITOR')
+  @ApiOperation({ summary: 'Update orders by ID' })
+  @ApiParam({ name: 'order_id', format: 'uuid' })
+  @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(OrdersDto) })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Orders not found' })
+  override async update(
+    @Param('order_id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) order_id: string,
+    @Body() dto: UpdateOrdersDto
+  ): Promise<ApiResponseDto<OrdersEntity>> {
+    return super.update(order_id, dto);
+  }
+}
+```
+

@@ -5,6 +5,15 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-08-22
+
+### Added
+- **Dynamic Module Configurator (`speedrun-cli config [module]` / alias `c`)** — Introduced a new core CLI command and sub-menu module (`src/moduleConfigurator.js`) allowing developers to dynamically customize Auth/Roles Guards (`@UseGuards`, `@Roles('ADMIN', 'SUPERADMIN', ...)`) and toggle active CRUD endpoints (`create`, `findAll`, `findOne`, `update`, `remove`) on existing modules without writing boilerplate code.
+- **Guard Import Resolver** — Configurator automatically detects whether `JwtAuthGuard` or `AuthGuard` is present in `src/common/guards` and injects matching imports and decorators.
+- **Interconnected CLI Ecosystem** — Integrated `config` (`c`) seamlessly across `generate` (`g`) and `field` (`f`) commands.
+
+---
+
 ## [2.7.14] - 2026-08-22
 
 ### Fixed

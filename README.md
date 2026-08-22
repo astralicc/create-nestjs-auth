@@ -41,6 +41,7 @@ npx speedrun-cli create my-app
 * 🔐 **Auth & Role Guard Injection:** Protect write operations (`POST`, `PUT`, `DELETE`) automatically with pre-configured `@UseGuards(JwtAuthGuard, RolesGuard)` and `@Roles('ADMIN', 'SUPERADMIN')` decorators.
 * 🔗 **Relationship Builder:** Add `Many-to-One` or `One-to-Many` relationships to other modules directly from the terminal with automatic foreign key wiring.
 * ✏️ **Sub-Menu Interactive Field Manager (`speedrun-cli field` / `f`):** Modify existing generated modules on the fly. Selectively edit specific field attributes (Name, Type, or Optional status), add new fields, or delete fields with automated DTO and ORM schema re-sync.
+* ⚙️ **Dynamic Module Configurator (`speedrun-cli config` / `c`):** Customize Auth Guards, change role permissions (`@Roles('ADMIN', 'SUPERADMIN')`), and enable/disable active CRUD endpoints on existing controllers without rewriting code.
 * 🏗️ **Automated Base Architecture:** Ensures `src/common/base` (`BaseController`, `BaseService`, and Swagger helpers) exists to eliminate missing import compilation errors (`TS2307`/`TS4112`).
 * 🔄 **Auto AppModule Registration:** Automatically injects generated modules into `src/app.module.ts`.
 
@@ -53,6 +54,7 @@ npx speedrun-cli create my-app
 | `speedrun-cli create [app-name]` | *(default)* | Scaffolds a new production-ready NestJS Auth project. |
 | `speedrun-cli generate [module]` | `g` | Generates a new CRUD module with PKs, fields, ORM sync, and Auth Guards. |
 | `speedrun-cli field [module]` | `f` | Interactive Field Manager to Add, Edit (sub-menu), or Delete fields on existing modules. |
+| `speedrun-cli config [module]` | `c` | Customize role guards (`@Roles`), auth protection, and active CRUD operations. |
 
 ---
 
@@ -79,6 +81,12 @@ npx speedrun-cli g orders
 ```bash
 # Manage fields: Add new field, Edit field (via sub-menu), or Delete field
 npx speedrun-cli f orders
+```
+
+### 4. Configure Roles & Toggle Active Endpoints
+```bash
+# Customize Auth Guards, update role permissions, or enable/disable routes
+npx speedrun-cli c orders
 ```
 
 ---

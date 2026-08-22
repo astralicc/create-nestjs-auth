@@ -1320,79 +1320,18 @@ ${statusDtoField}  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
     await fs.writeFile(path.join(moduleDir, `${kebabName}.service.ts`), serviceContent);
 
     // 4. Generate Controller
-    const guardImports = options.protectWriteOps ? `, UseGuards` : '';
-    const guardDecorator = options.protectWriteOps && options.roles?.length > 0
-      ? `\n  @UseGuards()\n  // Roles: ${options.roles.join(', ')}`
-      : '';
-
-    const controllerContent = `import { Controller${ops.findAll ? ', Query' : ''}${ops.findOne || ops.update || ops.remove ? ', Param, ParseUUIDPipe, HttpStatus' : ''}${ops.create ? ', Post, Body' : ''}${ops.findAll || ops.findOne ? ', Get' : ''}${ops.update ? ', Put' : ''}${ops.remove ? ', Delete' : ''}, Type${guardImports} } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiExtraModels, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { BaseController, ApiResponseDto, ApiResponseSchema, PaginatedResponseDto, PaginatedResponseSchema, PaginationQueryDto } from '../../common/base';
-import { ${pascalName}Service } from './${kebabName}.service';
-${ops.create || ops.update ? `import { ${createDtoName} } from './dto/create-${kebabName}.dto';\nimport { ${updateDtoName} } from './dto/update-${kebabName}.dto';` : `type ${createDtoName} = any;\ntype ${updateDtoName} = any;`}
-import { ${responseDtoName} } from './dto/${kebabName}.dto';
-
-type ${pascalName}Entity = any;
-
-@ApiTags('${pascalName}')
-@ApiBearerAuth('bearer')
-@ApiExtraModels(ApiResponseDto, PaginatedResponseDto, ${responseDtoName})
-@Controller('${kebabName}')
-export class ${pascalName}Controller extends BaseController<${pascalName}Entity, ${createDtoName}, ${updateDtoName}> {
-  constructor(protected readonly service: ${pascalName}Service) {
-    super(service);
-  }
-
-  protected getDtoClass(): Type<${pascalName}Entity> {
-    return ${responseDtoName} as unknown as Type<${pascalName}Entity>;
-  }
-${ops.create ? `
-  @Post()${guardDecorator}
-  @ApiOperation({ summary: 'Create a new ${kebabName}' })
-  @ApiResponse({ status: HttpStatus.CREATED, schema: ApiResponseSchema(${responseDtoName}) })
-  override async create(@Body() dto: ${createDtoName}): Promise<ApiResponseDto<${pascalName}Entity>> {
-    return super.create(dto);
-  }
-` : ''}${ops.findAll ? `
-  @Get()
-  @ApiOperation({ summary: 'Get all ${kebabName} (paginated)' })
-  @ApiResponse({ status: HttpStatus.OK, schema: PaginatedResponseSchema(${responseDtoName}) })
-  override async findAll(@Query() pagination: PaginationQueryDto): Promise<PaginatedResponseDto<${pascalName}Entity>> {
-    return super.findAll(pagination);
-  }
-` : ''}${ops.findOne ? `
-  @Get(':${primaryKey}')
-  @ApiOperation({ summary: 'Get ${kebabName} by ID' })
-  @ApiParam({ name: '${primaryKey}', format: 'uuid' })
-  @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(${responseDtoName}) })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: '${pascalName} not found' })
-  override async findOne(@Param('${primaryKey}', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ${primaryKey}: string): Promise<ApiResponseDto<${pascalName}Entity>> {
-    return super.findOne(${primaryKey});
-  }
-` : ''}${ops.update ? `
-  @Put(':${primaryKey}')${guardDecorator}
-  @ApiOperation({ summary: 'Update ${kebabName} by ID' })
-  @ApiParam({ name: '${primaryKey}', format: 'uuid' })
-  @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(${responseDtoName}) })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: '${pascalName} not found' })
-  override async update(
-    @Param('${primaryKey}', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ${primaryKey}: string,
-    @Body() dto: ${updateDtoName}
-  ): Promise<ApiResponseDto<${pascalName}Entity>> {
-    return super.update(${primaryKey}, dto);
-  }
-` : ''}${ops.remove ? `
-  @Delete(':${primaryKey}')${guardDecorator}
-  @ApiOperation({ summary: 'Delete ${kebabName} by ID' })
-  @ApiParam({ name: '${primaryKey}', format: 'uuid' })
-  @ApiResponse({ status: HttpStatus.OK, schema: ApiResponseSchema(${responseDtoName}) })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: '${pascalName} not found' })
-  override async remove(@Param('${primaryKey}', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: HttpStatus.BAD_REQUEST })) ${primaryKey}: string): Promise<ApiResponseDto<${pascalName}Entity>> {
-    return super.remove(${primaryKey});
-  }
-` : ''}
-}
-`;
+    const { renderControllerContent } = require('./moduleConfigurator');
+    const controllerContent = renderControllerContent({
+      pascalName,
+      kebabName,
+      primaryKey,
+      createDtoName,
+      updateDtoName,
+      responseDtoName,
+      ops,
+      protectWriteOps: options.protectWriteOps,
+      roles: options.roles || ['ADMIN'],
+    });
     await fs.writeFile(path.join(moduleDir, `${kebabName}.controller.ts`), controllerContent);
 
     // 5. Generate Module

@@ -29,6 +29,7 @@ const {
   printManualInstructions,
   generateModule,
   manageFields,
+  configureModule,
 } = require(path.join(packageRoot, 'src'));
 
 program
@@ -63,6 +64,20 @@ program
     } catch (error) {
       console.error(chalk.red('\n❌ Field management failed:'));
       console.error(error);
+    }
+  });
+
+// ==================== CONFIGURATION COMMAND ====================
+program
+  .command('config [module-name]')
+  .alias('c')
+  .description('Customize module roles, guards, and active CRUD operations')
+  .action(async (moduleName) => {
+    try {
+      console.log(chalk.cyan(`\n😱🤯🤯 speedrun-cli v${CLI_VERSION} module configurator 🤧🥶🥶🥶 (real)\n`));
+      await configureModule(moduleName, process.cwd());
+    } catch (error) {
+      console.error(chalk.red('\n❌ Module configuration failed:'), error);
     }
   });
 

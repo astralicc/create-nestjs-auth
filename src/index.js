@@ -10,6 +10,7 @@ const generator = require('./generator');
 const postSetup = require('./postSetup');
 const moduleGenerator = require('./moduleGenerator');
 const fieldManager = require('./fieldManager');
+const moduleConfigurator = require('./moduleConfigurator');
 
 module.exports = {
   ...constants,
@@ -19,4 +20,5 @@ module.exports = {
   ...postSetup,
   ...moduleGenerator,
   ...fieldManager,
+  ...moduleConfigurator,
 };
