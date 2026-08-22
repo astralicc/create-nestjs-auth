@@ -37,7 +37,7 @@ async function handlePostSetup(targetDir, appName, options) {
   const { continueSetup } = await inquirer.prompt([{
     type: 'confirm',
     name: 'continueSetup',
-    message: 'Would you like to complete the setup now? (JWT secrets, database, CRUD)',
+    message: 'Would you like to complete the setup now? (.env, databases)',
     default: true,
   }]);
 
