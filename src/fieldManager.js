@@ -11,45 +11,118 @@ const { execSync } = require('child_process');
 const { detectOrm, getOrmFieldChoices, regenerateModuleComponents, toKebabCase } = require('./moduleGenerator');
 const { detectPackageManager, getRunPrefix } = require('./utils');
 
-// Helper to parse existing fields from DTO file
-async function parseExistingFields(moduleDir, kebabName) {
-  const dtoPath = path.join(moduleDir, 'dto', `${kebabName}.dto.ts`);
-  if (!(await fs.pathExists(dtoPath))) return [];
+/**
+ * Map a class-validator decorator name to the best ORM-native type for the given ORM.
+ * Used when round-tripping field types from the DTO file back into the field editor.
+ */
+function inferOrmTypeFromValidator(decoratorName, orm) {
+  switch (decoratorName) {
+    case 'IsInt':
+      return orm === 'prisma' ? 'Int' : orm === 'mongoose' ? 'Number' : 'int';
+    case 'IsNumber':
+      if (orm === 'prisma') return 'Float';
+      if (orm === 'typeorm') return 'decimal';
+      if (orm === 'drizzle') return 'numeric';
+      return 'Number'; // mongoose
+    case 'IsBoolean':
+      return orm === 'prisma' || orm === 'mongoose' ? 'Boolean' : 'boolean';
+    case 'IsDate':
+      if (orm === 'prisma') return 'DateTime';
+      if (orm === 'mongoose') return 'Date';
+      return 'timestamp'; // typeorm / drizzle
+    case 'IsObject':
+      return orm === 'prisma' ? 'Json' : orm === 'mongoose' ? 'Object' : 'json';
+    case 'IsArray':
+      return orm === 'mongoose' ? 'Array' : orm === 'prisma' ? 'Json' : 'json';
+    case 'IsString':
+    default:
+      return orm === 'prisma' || orm === 'mongoose' ? 'String' : 'varchar';
+  }
+}
 
-  const content = await fs.readFile(dtoPath, 'utf8');
+// Helper to parse existing fields from the create DTO file (most accurate source)
+async function parseExistingFields(moduleDir, kebabName, orm = 'prisma') {
+  // Prefer create DTO (has validators + real field types); fall back to response DTO
+  const createDtoPath = path.join(moduleDir, 'dto', `create-${kebabName}.dto.ts`);
+  const responseDtoPath = path.join(moduleDir, 'dto', `${kebabName}.dto.ts`);
+
+  const targetPath = (await fs.pathExists(createDtoPath)) ? createDtoPath : responseDtoPath;
+  if (!(await fs.pathExists(targetPath))) return [];
+
+  const content = await fs.readFile(targetPath, 'utf8');
   const fields = [];
-
-  // RegEx to extract NestJS DTO property (fieldName?: type)
-  const regex = /^\s*([a-zA-Z0-9_]+)(\?)?:\s*([a-zA-Z\[\]<>]+);/gm;
-  let match;
 
   // System / PK / FK fields to exclude from editing
   const IGNORED_EXACT = new Set(['id', 'status', 'createdAt', 'updatedAt', 'deletedAt']);
 
-  while ((match = regex.exec(content)) !== null) {
-    const [, name, optional, tsType] = match;
+  // Split into per-property blocks by splitting at each decorator line or property line
+  // Strategy: iterate line-by-line, collect decorator context then resolve property
+  const lines = content.split('\n');
+  let pendingDecorators = [];
 
-    // Skip system fields, fields ending with _id or Id suffix (FK / custom PK patterns)
-    if (
-      IGNORED_EXACT.has(name) ||
-      /_id$/i.test(name) ||
-      /Id$/.test(name)
-    ) continue;
+  for (const line of lines) {
+    const trimmed = line.trim();
 
-    let type = 'String';
-    if (tsType === 'number') type = 'Number';
-    if (tsType === 'boolean') type = 'Boolean';
-    if (tsType === 'Date') type = 'Date';
+    // Collect validator decorator names (e.g. @IsString(), @IsInt())
+    const decMatch = trimmed.match(/^@(Is[A-Z][a-zA-Z]+)\(/);
+    if (decMatch) {
+      pendingDecorators.push(decMatch[1]);
+      continue;
+    }
 
-    fields.push({
-      name,
-      type,
-      isOptional: !!optional,
-    });
+    // Reset decorator context on non-decorator, non-property lines
+    if (trimmed.startsWith('@') || trimmed === '' || trimmed.startsWith('import') || trimmed.startsWith('export') || trimmed.startsWith('//')) {
+      if (!trimmed.match(/^([a-zA-Z0-9_]+)\??\s*:/)) {
+        pendingDecorators = [];
+      }
+      continue;
+    }
+
+    // Match property line: fieldName?: tsType;
+    const propMatch = trimmed.match(/^([a-zA-Z0-9_]+)(\?)?\s*:\s*([a-zA-Z_][\w\[\]]*)\s*;/);
+    if (propMatch) {
+      const [, name, optional, tsType] = propMatch;
+
+      // Skip system fields and FK / custom PK patterns
+      if (
+        IGNORED_EXACT.has(name) ||
+        /_id$/i.test(name) ||
+        /Id$/.test(name)
+      ) {
+        pendingDecorators = [];
+        continue;
+      }
+
+      // Determine ORM type from validator decorators (most accurate) or TS type fallback
+      let ormType;
+      const validatorDec = pendingDecorators.find((d) => d.startsWith('Is'));
+      if (validatorDec) {
+        ormType = inferOrmTypeFromValidator(validatorDec, orm);
+      } else {
+        // TS-type fallback mapping
+        if (tsType === 'number') ormType = orm === 'prisma' ? 'Float' : orm === 'mongoose' ? 'Number' : 'decimal';
+        else if (tsType === 'boolean') ormType = orm === 'prisma' || orm === 'mongoose' ? 'Boolean' : 'boolean';
+        else if (tsType === 'Date') ormType = orm === 'prisma' ? 'DateTime' : orm === 'mongoose' ? 'Date' : 'timestamp';
+        else if (tsType === 'object') ormType = orm === 'prisma' ? 'Json' : orm === 'mongoose' ? 'Object' : 'json';
+        else ormType = orm === 'prisma' || orm === 'mongoose' ? 'String' : 'varchar';
+      }
+
+      fields.push({
+        name,
+        type: ormType,
+        isOptional: !!optional,
+      });
+
+      pendingDecorators = [];
+      continue;
+    }
+
+    pendingDecorators = [];
   }
 
   return fields;
 }
+
 
 /**
  * Executes ORM-specific database migration / schema sync
@@ -124,8 +197,8 @@ async function manageFields(providedModuleName, targetDir = process.cwd()) {
       return false;
     }
 
-    // Load existing fields
-    let fields = await parseExistingFields(moduleDir, kebabName);
+    // Load existing fields (pass orm so type inference produces ORM-native types)
+    let fields = await parseExistingFields(moduleDir, kebabName, orm);
     console.log(chalk.cyan(`\n📦 Managing fields for module: ${chalk.bold(kebabName)} (Detected ORM: ${orm})`));
 
     let managing = true;

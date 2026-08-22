@@ -5,6 +5,17 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.14] - 2026-08-22
+
+### Fixed
+- **FK fields now included in `Create*Dto` and response DTO** — When relations (Many-to-One / One-to-Many) are defined during `speedrun-cli g [module]`, the foreign key fields (e.g., `userId`, `categoryId`) are now generated in `create-[module].dto.ts` with `@IsUUID()` / `@IsOptional()` validators and `@ApiPropertyOptional({ format: 'uuid' })` Swagger docs. They also appear in the response DTO.
+- **`IsUUID` added to class-validator imports when relations exist** — The validator import set now includes `IsUUID` whenever at least one relation FK field is generated, preventing `TS2304: Cannot find name 'IsUUID'`.
+- **`Type` (class-transformer) no longer bleeds into class-validator import** — The `allValDecorators` collector now filters to `Is*` prefixed names only, preventing duplicate/wrong imports like `import { Type } from 'class-validator'` in both `generateModule` and `regenerateModuleComponents`.
+- **TypeORM `update()` uses object criteria form** — Changed `this.repo.update(primaryKey, dto)` to `this.repo.update({ primaryKey } as any, dto)` so TypeORM correctly resolves the WHERE clause by column object rather than treating the PK name string as the row ID.
+- **`parseExistingFields` reads `create-[module].dto.ts` and uses validator decorators for type inference** — Previously read the response DTO and guessed ORM types from TypeScript types, causing `number` → `'Number'` corruption. Now reads the create DTO (which has `@IsInt()`, `@IsDate()`, etc.) and maps them precisely to ORM-native types (`Int`, `DateTime`, `timestamp`, etc.) per detected ORM.
+
+---
+
 ## [2.7.13] - 2026-08-22
 
 ### Fixed

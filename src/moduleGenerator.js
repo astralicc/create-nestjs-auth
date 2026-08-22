@@ -845,7 +845,7 @@ class TypeOrm${pascalName}Repository implements IBaseRepository<${pascalName}Ent
   }` : `async findOne(${primaryKey}: string): Promise<${pascalName}Entity | null> { throw new Error('Not implemented'); }`}
 
   ${ops.update ? `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> {
-    await this.repo.update(${primaryKey}, dto as any);
+    await this.repo.update({ ${primaryKey} } as any, dto as any);
     return this.repo.findOneOrFail({ where: { ${primaryKey} } as any });
   }` : `async update(${primaryKey}: string, dto: ${updateDtoName}): Promise<${pascalName}Entity> { throw new Error('Not implemented'); }`}
 
@@ -1216,17 +1216,27 @@ async function generateModule(providedModuleName, targetDir = process.cwd(), spe
       return `  ${swaggerDecorator}\n  ${valDecorators.join('\n  ')}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
     }).join('\n\n');
 
-    const hasDateFields = options.fields.some((f) => ['DateTime', 'timestamp', 'Date'].includes(f.type));
+    // Build FK fields for Create DTO from relations (e.g., userId, categoryId)
+    const relationFkFields = (options.relations || []).map((r) => {
+      return `  @ApiPropertyOptional({ description: 'Foreign key linking to ${r.targetModule}', example: '123e4567-e89b-12d3-a456-426614174000', format: 'uuid' })\n  @IsOptional()\n  @IsUUID()\n  ${r.fkField}?: string;`;
+    }).join('\n\n');
 
-    // Validator import gathering
+    const hasDateFields = options.fields.some((f) => ['DateTime', 'timestamp', 'Date'].includes(f.type));
+    const hasRelations = (options.relations || []).length > 0;
+
+    // Validator import gathering — only collect 'Is*' decorators (class-validator)
     const allValDecorators = new Set(['IsOptional', 'IsNotEmpty']);
     options.fields.forEach((f) => {
       const details = getFieldDetails(f.type);
       details.valDecorators.forEach((dec) => {
         const name = dec.replace('@', '').replace(/\(.*\)/, '');
-        if (name) allValDecorators.add(name);
+        // Only include class-validator decorators (Is* prefix), not Type from class-transformer
+        if (name && name.startsWith('Is')) allValDecorators.add(name);
       });
     });
+    if (hasRelations) allValDecorators.add('IsUUID');
+
+    const createDtoBody = [createFieldsText, relationFkFields].filter(Boolean).join('\n\n');
 
     if (ops.create || ops.update) {
       await fs.writeFile(
@@ -1235,7 +1245,7 @@ async function generateModule(providedModuleName, targetDir = process.cwd(), spe
 import { ${Array.from(allValDecorators).join(', ')} } from 'class-validator';
 ${hasDateFields ? `import { Type } from 'class-transformer';\n` : ''}
 export class ${createDtoName} {
-${createFieldsText}
+${createDtoBody}
 }
 `
       );
@@ -1262,6 +1272,11 @@ export class ${updateDtoName} extends PartialType(${createDtoName}) {}
       return `  ${swaggerDecorator}\n  ${f.name}${f.isOptional ? '?' : ''}: ${details.tsType};`;
     }).join('\n\n');
 
+    // FK relation fields in response DTO (always optional — may be null if not populated)
+    const responseFkFields = (options.relations || []).map((r) => {
+      return `  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000', format: 'uuid' })\n  ${r.fkField}?: string;`;
+    }).join('\n\n');
+
     const statusDtoField = options.includeStatus !== false
       ? `  @ApiProperty({ example: 'ACTIVE' })\n  status: string;\n\n`
       : '';
@@ -1274,7 +1289,9 @@ export class ${responseDtoName} {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000', format: 'uuid' })
   ${primaryKey}: string;
 
-${responseFieldsText}
+${responseFieldsText}${
+  responseFkFields ? `\n\n${responseFkFields}` : ''
+}
 
 ${statusDtoField}  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
   createdAt: Date;
@@ -1500,7 +1517,8 @@ async function regenerateModuleComponents(moduleName, fields, targetDir = proces
     const details = getFieldDetails(f.type);
     details.valDecorators.forEach((dec) => {
       const name = dec.replace('@', '').replace(/\(.*\)/, '');
-      if (name) allValDecorators.add(name);
+      // Only class-validator Is* decorators — Type comes from class-transformer, not here
+      if (name && name.startsWith('Is')) allValDecorators.add(name);
     });
   });
 
