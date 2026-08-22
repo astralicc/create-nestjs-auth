@@ -346,4 +346,4 @@ async function configureModule(providedModuleName, targetDir = process.cwd()) {
   }
 }
 
-module.exports = { configureModule, renderControllerContent };
+module.exports = { configureModule, renderControllerContent, getGuardImportDetails };

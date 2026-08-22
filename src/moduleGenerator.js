@@ -1425,7 +1425,10 @@ ${statusDtoField}  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
     await fs.writeFile(path.join(moduleDir, `${kebabName}.service.ts`), serviceContent);
 
     // 4. Generate Controller
-    const { renderControllerContent } = require('./moduleConfigurator');
+    const { renderControllerContent, getGuardImportDetails } = require('./moduleConfigurator');
+    await ensureBaseArchitecture(targetDir);
+    const { guardName, guardImportPath } = await getGuardImportDetails(targetDir);
+
     const controllerContent = renderControllerContent({
       pascalName,
       kebabName,
@@ -1436,6 +1439,8 @@ ${statusDtoField}  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
       ops,
       protectWriteOps: options.protectWriteOps,
       roles: options.roles || ['ADMIN'],
+      guardName,
+      guardImportPath,
     });
     await fs.writeFile(path.join(moduleDir, `${kebabName}.controller.ts`), controllerContent);
 

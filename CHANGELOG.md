@@ -5,6 +5,13 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.2] - 2026-08-22
+
+### Fixed
+- **Fixed TS2307: Cannot find module `../../common/guards/jwt-auth.guard` in `generateModule`** — Updated `generateModule` in `src/moduleGenerator.js` to trigger `ensureBaseArchitecture(targetDir)` and pass guard resolution details (`guardName` & `guardImportPath` from `getGuardImportDetails`) to `renderControllerContent`, guaranteeing placeholder guard files (`src/common/guards/jwt-auth.guard.ts` & `roles.guard.ts`) exist and match generated controller import paths.
+
+---
+
 ## [2.10.1] - 2026-08-22
 
 ### UX Improvements
