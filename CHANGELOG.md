@@ -5,6 +5,13 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - 2026-08-22
+
+### Enhanced
+- **Interactive Handoff Menu for Existing Modules** — When running `speedrun-cli g [module]` and an existing module is detected (e.g. `orders`), the CLI now prompts with an interactive action menu to seamlessly transition to Field Manager (`field`), Configurator (`config`), Seed Generator (`seed`), Overwrite (`overwrite`), or Cancel (`cancel`).
+
+---
+
 ## [2.9.0] - 2026-08-22
 
 ### Added

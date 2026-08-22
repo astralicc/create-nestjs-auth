@@ -223,18 +223,40 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
 
   if (await fs.pathExists(moduleDir)) {
     const relPath = path.relative(targetDir, moduleDir);
-    console.log(chalk.yellow(`\n⚠️  Module "${kebabName}" already exists at ${relPath}`));
-    console.log(chalk.gray(`   - Use "speedrun-cli field ${kebabName}" (alias: f) to add or edit fields.`));
-    console.log(chalk.gray(`   - Use "speedrun-cli config ${kebabName}" (alias: c) to configure guards & routes.\n`));
+    console.log(chalk.yellow(`\n⚠️  Module "${kebabName}" already exists at ${relPath}\n`));
 
-    const { overwrite } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'overwrite',
-      message: `Do you still want to overwrite existing module "${kebabName}"?`,
-      default: false,
+    const { existingAction } = await inquirer.prompt([{
+      type: 'list',
+      name: 'existingAction',
+      message: `What do you want to do with existing module "${kebabName}"?`,
+      choices: [
+        { name: '✏️  Manage/Edit fields (switch to field manager)', value: 'field' },
+        { name: '🔐 Configure Auth Guards & Endpoints (switch to configurator)', value: 'config' },
+        { name: '🌱 Generate Seed / Dummy Data (switch to seed generator)', value: 'seed' },
+        { name: '⚠️  Overwrite and regenerate module from scratch', value: 'overwrite' },
+        { name: '❌ Cancel', value: 'cancel' },
+      ],
     }]);
 
-    if (!overwrite) {
+    if (existingAction === 'field') {
+      const { manageFields } = require('./fieldManager');
+      await manageFields(kebabName, targetDir);
+      return null;
+    }
+
+    if (existingAction === 'config') {
+      const { configureModule } = require('./moduleConfigurator');
+      await configureModule(kebabName, targetDir);
+      return null;
+    }
+
+    if (existingAction === 'seed') {
+      const { generateSeed } = require('./seedGenerator');
+      await generateSeed(kebabName, targetDir);
+      return null;
+    }
+
+    if (existingAction === 'cancel') {
       console.log(chalk.gray('Cancelled module generation. Existing module files preserved.\n'));
       return null;
     }
