@@ -5,6 +5,13 @@ All notable changes to create-nestjs-auth will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.2] - 2026-08-22
+
+### Added
+- **Duplicate Module Validation & Overwrite Guard** — When running `speedrun-cli g [module]`, the CLI now checks if the module directory (e.g. `src/modules/orange`) already exists. If detected, it displays a warning with hints to use `speedrun-cli field` (`f`) or `speedrun-cli config` (`c`), and prompts for explicit confirmation before proceeding (`default: false`), preventing accidental overwrites.
+
+---
+
 ## [2.8.1] - 2026-08-22
 
 ### Fixed

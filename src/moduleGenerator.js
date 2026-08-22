@@ -202,7 +202,7 @@ function getFieldDetails(fieldType) {
 /**
  * Interactive prompt for module options (Name, CRUD Mode, PK, Fields, Relations, Auth Guards)
  */
-async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma') {
+async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma', targetDir = process.cwd()) {
   let moduleName = providedModuleName;
 
   if (!moduleName) {
@@ -216,6 +216,30 @@ async function promptForModuleOptions(providedModuleName, detectedOrm = 'prisma'
   }
 
   const kebabName = toKebabCase(moduleName);
+  const srcDir = path.join(targetDir, 'src');
+  const moduleDir = (await fs.pathExists(srcDir))
+    ? path.join(srcDir, 'modules', kebabName)
+    : path.join(targetDir, 'modules', kebabName);
+
+  if (await fs.pathExists(moduleDir)) {
+    const relPath = path.relative(targetDir, moduleDir);
+    console.log(chalk.yellow(`\n⚠️  Module "${kebabName}" already exists at ${relPath}`));
+    console.log(chalk.gray(`   - Use "speedrun-cli field ${kebabName}" (alias: f) to add or edit fields.`));
+    console.log(chalk.gray(`   - Use "speedrun-cli config ${kebabName}" (alias: c) to configure guards & routes.\n`));
+
+    const { overwrite } = await inquirer.prompt([{
+      type: 'confirm',
+      name: 'overwrite',
+      message: `Do you still want to overwrite existing module "${kebabName}"?`,
+      default: false,
+    }]);
+
+    if (!overwrite) {
+      console.log(chalk.gray('Cancelled module generation. Existing module files preserved.\n'));
+      return null;
+    }
+  }
+
   const pascalName = toPascalCase(moduleName);
   const singularPascal = toSingularPascal(pascalName);
   const singularSnake = toSnakeCase(singularPascal);
@@ -1202,7 +1226,9 @@ async function generateModule(providedModuleName, targetDir = process.cwd(), spe
     // Detect ORM first so prompt choices match
     const orm = specifiedOrm || (await detectOrm(targetDir));
 
-    const options = await promptForModuleOptions(providedModuleName, orm);
+    const options = await promptForModuleOptions(providedModuleName, orm, targetDir);
+    if (!options) return false;
+
     const kebabName = toKebabCase(options.moduleName);
     const pascalName = toPascalCase(options.moduleName);
     const camelName = toCamelCase(options.moduleName);
