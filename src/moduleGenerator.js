@@ -80,6 +80,81 @@ async function detectOrm(targetDir) {
 }
 
 /**
+ * Ensures src/common/base exists with required abstract classes & DTOs
+ */
+async function ensureBaseArchitecture(targetDir) {
+  try {
+    const commonBaseDir = path.join(targetDir, 'src', 'common', 'base');
+
+    if (!(await fs.pathExists(commonBaseDir))) {
+      await fs.ensureDir(commonBaseDir);
+
+      // 1. base.controller.ts
+      await fs.writeFile(
+        path.join(commonBaseDir, 'base.controller.ts'),
+        `import { Type } from '@nestjs/common';
+
+export abstract class BaseController<T, CreateDto, UpdateDto> {
+  constructor(protected readonly service: any) {}
+  protected abstract getDtoClass(): Type<T>;
+  async create(dto: CreateDto): Promise<any> { return this.service.create(dto); }
+  async findAll(query: any): Promise<any> { return this.service.findAll(query); }
+  async findOne(id: string): Promise<any> { return this.service.findOne(id); }
+  async update(id: string, dto: UpdateDto): Promise<any> { return this.service.update(id, dto); }
+  async remove(id: string): Promise<any> { return this.service.remove(id); }
+}
+`
+      );
+
+      // 2. base.service.ts
+      await fs.writeFile(
+        path.join(commonBaseDir, 'base.service.ts'),
+        `import { Injectable } from '@nestjs/common';
+
+export interface PaginationQueryDto { page?: number; limit?: number; }
+export interface IBaseRepository<T, CreateDto, UpdateDto> {
+  create(dto: CreateDto): Promise<T>;
+  findAll(pagination: PaginationQueryDto): Promise<{ data: T[]; total: number }>;
+  findOne(id: string): Promise<T | null>;
+  update(id: string, dto: UpdateDto): Promise<T>;
+  remove(id: string): Promise<T>;
+}
+
+@Injectable()
+export abstract class BaseService<T, CreateDto, UpdateDto> {
+  protected abstract getRepository(): IBaseRepository<T, CreateDto, UpdateDto>;
+  async create(dto: CreateDto): Promise<T> { return this.getRepository().create(dto); }
+  async findAll(pagination: PaginationQueryDto): Promise<{ data: T[]; total: number }> { return this.getRepository().findAll(pagination); }
+  async findOne(id: string): Promise<T | null> { return this.getRepository().findOne(id); }
+  async update(id: string, dto: UpdateDto): Promise<T> { return this.getRepository().update(id, dto); }
+  async remove(id: string): Promise<T> { return this.getRepository().remove(id); }
+}
+`
+      );
+
+      // 3. index.ts (Re-exports & DTO helpers)
+      await fs.writeFile(
+        path.join(commonBaseDir, 'index.ts'),
+        `export * from './base.controller';
+export * from './base.service';
+
+export class ApiResponseDto<T> { statusCode: number; message: string; data: T; }
+export class PaginatedResponseDto<T> { statusCode: number; message: string; data: T[]; total: number; page: number; limit: number; }
+export class PaginationQueryDto { page?: number; limit?: number; }
+
+export function ApiResponseSchema(dto: any): any { return {}; }
+export function PaginatedResponseSchema(dto: any): any { return {}; }
+`
+      );
+
+      console.log(chalk.green('  ✓ Auto-generated missing src/common/base architecture'));
+    }
+  } catch (error) {
+    console.warn(chalk.yellow(`  ⚠️ Could not verify/create base architecture: ${error.message}`));
+  }
+}
+
+/**
  * Interactive prompt for module options (Name, CRUD Mode, Fields)
  */
 async function promptForModuleOptions(providedModuleName) {
@@ -284,9 +359,9 @@ ${fieldLines.join('\n')}
 
     content += modelDefinition;
     await fs.writeFile(schemaPath, content, 'utf8');
-    console.log(chalk.green(`   ✓ Updated prisma/schema.prisma with model ${singularPascal}`));
+    console.log(chalk.green(`    ✓ Updated prisma/schema.prisma with model ${singularPascal}`));
   } catch (error) {
-    console.warn(chalk.yellow(`   ⚠️ Could not sync prisma/schema.prisma: ${error.message}`));
+    console.warn(chalk.yellow(`    ⚠️ Could not sync prisma/schema.prisma: ${error.message}`));
   }
 }
 
@@ -341,9 +416,9 @@ ${fieldLines.join('\n\n')}
 `;
 
     await fs.writeFile(entityPath, entityContent, 'utf8');
-    console.log(chalk.green(`   ✓ Generated TypeORM entity at src/modules/${kebabName}/entities/${toSingularKebab(kebabName)}.entity.ts`));
+    console.log(chalk.green(`    ✓ Generated TypeORM entity at src/modules/${kebabName}/entities/${toSingularKebab(kebabName)}.entity.ts`));
   } catch (error) {
-    console.warn(chalk.yellow(`   ⚠️ Could not generate TypeORM entity: ${error.message}`));
+    console.warn(chalk.yellow(`    ⚠️ Could not generate TypeORM entity: ${error.message}`));
   }
 }
 
@@ -394,9 +469,9 @@ export const ${singularPascal}Schema = SchemaFactory.createForClass(${singularPa
 `;
 
     await fs.writeFile(schemaPath, schemaContent, 'utf8');
-    console.log(chalk.green(`   ✓ Generated Mongoose schema at src/modules/${kebabName}/schemas/${toSingularKebab(kebabName)}.schema.ts`));
+    console.log(chalk.green(`    ✓ Generated Mongoose schema at src/modules/${kebabName}/schemas/${toSingularKebab(kebabName)}.schema.ts`));
   } catch (error) {
-    console.warn(chalk.yellow(`   ⚠️ Could not generate Mongoose schema: ${error.message}`));
+    console.warn(chalk.yellow(`    ⚠️ Could not generate Mongoose schema: ${error.message}`));
   }
 }
 
@@ -442,9 +517,9 @@ export type New${singularPascal} = typeof ${toCamelCase(kebabName)}s.$inferInser
 `;
 
     await fs.writeFile(schemaPath, schemaContent, 'utf8');
-    console.log(chalk.green(`   ✓ Generated Drizzle schema at src/modules/${kebabName}/schema/${kebabName}.schema.ts`));
+    console.log(chalk.green(`    ✓ Generated Drizzle schema at src/modules/${kebabName}/schema/${kebabName}.schema.ts`));
   } catch (error) {
-    console.warn(chalk.yellow(`   ⚠️ Could not generate Drizzle schema: ${error.message}`));
+    console.warn(chalk.yellow(`    ⚠️ Could not generate Drizzle schema: ${error.message}`));
   }
 }
 
@@ -478,7 +553,7 @@ ${dummyObjFields}
 }
 `;
       await fs.writeFile(seedPath, seedContent, 'utf8');
-      console.log(chalk.green(`   ✓ Generated Prisma seed template at prisma/seeds/${kebabName}.seed.ts`));
+      console.log(chalk.green(`    ✓ Generated Prisma seed template at prisma/seeds/${kebabName}.seed.ts`));
     } else {
       const seedsDir = path.join(targetDir, 'src', 'database', 'seeds');
       await fs.ensureDir(seedsDir);
@@ -502,10 +577,10 @@ ${dummyObjFields}
 }
 `;
       await fs.writeFile(seedPath, seedContent, 'utf8');
-      console.log(chalk.green(`   ✓ Generated seed template at src/database/seeds/${kebabName}.seed.ts`));
+      console.log(chalk.green(`    ✓ Generated seed template at src/database/seeds/${kebabName}.seed.ts`));
     }
   } catch (error) {
-    console.warn(chalk.yellow(`   ⚠️ Could not generate seed template: ${error.message}`));
+    console.warn(chalk.yellow(`    ⚠️ Could not generate seed template: ${error.message}`));
   }
 }
 
@@ -843,6 +918,9 @@ async function registerInAppModule(targetDir, pascalName, kebabName) {
  */
 async function generateModule(providedModuleName, targetDir = process.cwd(), specifiedOrm = null) {
   try {
+    // Ensure src/common/base exists before generating any module components
+    await ensureBaseArchitecture(targetDir);
+
     const options = await promptForModuleOptions(providedModuleName);
     const kebabName = toKebabCase(options.moduleName);
     const pascalName = toPascalCase(options.moduleName);
@@ -991,11 +1069,10 @@ ${responseFieldsText}
     );
     await fs.writeFile(path.join(moduleDir, `${kebabName}.service.ts`), serviceContent);
 
-    // 4. Generate Controller
+    // 4. Generate Controller (Fixed single clean import path from common/base)
     const controllerContent = `import { Controller${ops.findAll ? ', Query' : ''}${ops.findOne || ops.update || ops.remove ? ', Param, ParseUUIDPipe, HttpStatus' : ''}${ops.create ? ', Post, Body' : ''}${ops.findAll || ops.findOne ? ', Get' : ''}${ops.update ? ', Put' : ''}${ops.remove ? ', Delete' : ''}, Type } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiExtraModels, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { BaseController } from '../../common/base/base.controller';
-import { ApiResponseDto, ApiResponseSchema, PaginatedResponseDto, PaginatedResponseSchema, PaginationQueryDto } from '../../common/base';
+import { BaseController, ApiResponseDto, ApiResponseSchema, PaginatedResponseDto, PaginatedResponseSchema, PaginationQueryDto } from '../../common/base';
 import { ${pascalName}Service } from './${kebabName}.service';
 ${ops.create || ops.update ? `import { ${createDtoName} } from './dto/create-${kebabName}.dto';\nimport { ${updateDtoName} } from './dto/update-${kebabName}.dto';` : `type ${createDtoName} = any;\ntype ${updateDtoName} = any;`}
 import { ${responseDtoName} } from './dto/${kebabName}.dto';
@@ -1074,7 +1151,7 @@ ${ops.create ? `
     await generateSeedFileTemplate(targetDir, orm, singularPascal, kebabName, options.fields);
 
     console.log(chalk.green(`\n✅ Module "${kebabName}" successfully generated in ${path.relative(process.cwd(), moduleDir)}`));
-    console.log(chalk.gray(`   Detected ORM: ${orm}`));
+    console.log(chalk.gray(`    Detected ORM: ${orm}`));
 
     if (!isAutoRegistered) {
       console.log(chalk.yellow(`\n⚠️ Please manually register ${pascalName}Module in src/app.module.ts:`));
