@@ -28,6 +28,7 @@ const {
   handlePostSetup,
   printManualInstructions,
   generateModule,
+  manageFields,
 } = require(path.join(packageRoot, 'src'));
 
 program
@@ -46,6 +47,21 @@ program
       await generateModule(moduleName, process.cwd());
     } catch (error) {
       console.error(chalk.red('\n❌ Module generation failed:'));
+      console.error(error);
+    }
+  });
+
+// ==================== FIELD MANAGEMENT COMMAND ====================
+program
+  .command('field [module-name]')
+  .alias('f')
+  .description('Manage (add, edit, delete) fields of an existing module')
+  .action(async (moduleName) => {
+    try {
+      console.log(chalk.cyan(`\n😱🤯🤯 speedrun-cli v${CLI_VERSION} field manager 🤧🥶🥶🥶 (real)\n`));
+      await manageFields(moduleName, process.cwd());
+    } catch (error) {
+      console.error(chalk.red('\n❌ Field management failed:'));
       console.error(error);
     }
   });
