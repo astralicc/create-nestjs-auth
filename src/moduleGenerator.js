@@ -200,6 +200,7 @@ async function promptForModuleOptions(providedModuleName) {
   }
 
   // Interactive Field Builder Loop
+  // Interactive Field Builder Loop
   const { addCustomFields } = await inquirer.prompt([{
     type: 'confirm',
     name: 'addCustomFields',
@@ -210,13 +211,16 @@ async function promptForModuleOptions(providedModuleName) {
   const fields = [];
 
   if (addCustomFields) {
-    let addAnother = true;
-    while (addAnother) {
-      const fieldAnswers = await inquirer.prompt([
+    let building = true;
+
+    // Helper untuk input field baru / edit
+    const promptSingleField = async (initialValues = {}) => {
+      return await inquirer.prompt([
         {
           type: 'input',
           name: 'fieldName',
           message: 'Enter field name (e.g., totalAmount, title):',
+          default: initialValues.name,
           validate: (input) => {
             if (!input || !input.trim()) return 'Field name is required';
             if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(input.trim())) {
@@ -230,30 +234,96 @@ async function promptForModuleOptions(providedModuleName) {
           name: 'fieldType',
           message: (answers) => `Select field type for '${answers.fieldName}':`,
           choices: ['String', 'Number', 'Boolean', 'Date'],
-          default: 'String',
+          default: initialValues.type || 'String',
         },
         {
           type: 'confirm',
           name: 'isOptional',
           message: (answers) => `Is '${answers.fieldName}' optional?`,
-          default: false,
+          default: initialValues.isOptional !== undefined ? initialValues.isOptional : false,
         },
       ]);
+    };
 
-      fields.push({
-        name: fieldAnswers.fieldName.trim(),
-        type: fieldAnswers.fieldType,
-        isOptional: fieldAnswers.isOptional,
-      });
+    // Tambah field pertama
+    console.log(chalk.cyan('\n--- Add Field 1 ---'));
+    const firstField = await promptSingleField();
+    fields.push({
+      name: firstField.fieldName.trim(),
+      type: firstField.fieldType,
+      isOptional: firstField.isOptional,
+    });
 
-      const { continueLoop } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'continueLoop',
-        message: 'Do you want to add another field?',
-        default: false,
+    // Menu Navigasi (Add, Edit, Delete, Finish)
+    while (building) {
+      console.log(chalk.gray(`\nCurrent Fields (${fields.length}): `) + fields.map(f => chalk.yellow(`${f.name} (${f.type}${f.isOptional ? '?' : ''})`)).join(', '));
+
+      const { action } = await inquirer.prompt([{
+        type: 'list',
+        name: 'action',
+        message: 'What do you want to do next?',
+        choices: [
+          { name: '➕ Add another field', value: 'add' },
+          { name: '✏️  Edit an existing field', value: 'edit' },
+          { name: '🗑️  Delete a field', value: 'delete' },
+          { name: '✅ Finish and generate module', value: 'done' },
+        ],
       }]);
 
-      addAnother = continueLoop;
+      if (action === 'add') {
+        console.log(chalk.cyan(`\n--- Add Field ${fields.length + 1} ---`));
+        const newField = await promptSingleField();
+        fields.push({
+          name: newField.fieldName.trim(),
+          type: newField.fieldType,
+          isOptional: newField.isOptional,
+        });
+      } else if (action === 'edit') {
+        if (fields.length === 0) {
+          console.log(chalk.yellow('⚠️ No fields available to edit.'));
+          continue;
+        }
+
+        const { fieldToEditIndex } = await inquirer.prompt([{
+          type: 'list',
+          name: 'fieldToEditIndex',
+          message: 'Select field to edit:',
+          choices: fields.map((f, index) => ({
+            name: `${f.name} (${f.type}${f.isOptional ? '?' : ''})`,
+            value: index,
+          })),
+        }]);
+
+        console.log(chalk.cyan(`\n--- Editing Field '${fields[fieldToEditIndex].name}' ---`));
+        const editedField = await promptSingleField(fields[fieldToEditIndex]);
+        fields[fieldToEditIndex] = {
+          name: editedField.fieldName.trim(),
+          type: editedField.fieldType,
+          isOptional: editedField.isOptional,
+        };
+        console.log(chalk.green(`✓ Field '${fields[fieldToEditIndex].name}' updated successfully.`));
+      } else if (action === 'delete') {
+        if (fields.length === 0) {
+          console.log(chalk.yellow('⚠️ No fields available to delete.'));
+          continue;
+        }
+
+        const { fieldToDeleteIndex } = await inquirer.prompt([{
+          type: 'list',
+          name: 'fieldToDeleteIndex',
+          message: 'Select field to delete:',
+          choices: fields.map((f, index) => ({
+            name: `${f.name} (${f.type}${f.isOptional ? '?' : ''})`,
+            value: index,
+          })),
+        }]);
+
+        const deletedName = fields[fieldToDeleteIndex].name;
+        fields.splice(fieldToDeleteIndex, 1);
+        console.log(chalk.red(`🗑️ Field '${deletedName}' removed.`));
+      } else if (action === 'done') {
+        building = false;
+      }
     }
   }
 
@@ -261,12 +331,6 @@ async function promptForModuleOptions(providedModuleName) {
   if (fields.length === 0) {
     fields.push({ name: 'name', type: 'String', isOptional: false });
   }
-
-  return {
-    moduleName,
-    operations: selectedOperations,
-    fields,
-  };
 }
 
 function getFieldExampleValue(field, pascalName) {
