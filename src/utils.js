@@ -115,9 +115,13 @@ function registerStrictConfirmPrompt(inquirerInstance = require('inquirer')) {
     class StrictConfirmPrompt extends InputPrompt {
       constructor(questions, rl, answers) {
         super(questions, rl, answers);
-        if (this.opt.default === undefined) {
-          this.opt.default = true;
-        }
+        this.defaultBool = this.opt.default !== false;
+      }
+
+      getQuestion() {
+        let message = super.getQuestion();
+        // Remove auto-appended (true) or (false) text from InputPrompt
+        return message.replace(/\s*\((true|false)\)\s*/g, ' ');
       }
 
       render(answer) {
@@ -126,7 +130,7 @@ function registerStrictConfirmPrompt(inquirerInstance = require('inquirer')) {
         if (this.status === 'answered') {
           message += chalk.cyan(answer !== undefined ? (answer ? 'Yes' : 'No') : (this.answer ? 'Yes' : 'No'));
         } else {
-          message += chalk.dim(this.opt.default ? ' (Y/n)' : ' (y/N)');
+          message += chalk.dim(this.defaultBool ? ' (Y/n)' : ' (y/N)');
         }
 
         let bottomContent = '';
@@ -150,7 +154,7 @@ function registerStrictConfirmPrompt(inquirerInstance = require('inquirer')) {
 
       filterInput(input) {
         if (input === undefined || input === null || input.toString().trim() === '') {
-          return this.opt.default !== false;
+          return this.defaultBool;
         }
         const val = input.toString().trim().toLowerCase();
         return ['y', 'yes'].includes(val);
